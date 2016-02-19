@@ -1,0 +1,26 @@
+/*
+ *  pthread.h   POSIX threads interface
+ *
+:include crwat.sp
+ */
+#ifndef _PTHREAD_H_INCLUDED
+#define _PTHREAD_H_INCLUDED
+
+:include readonly.sp
+
+:include owrtlink.sp
+
+:include cpluspro.sp
+
+:include systypes.sp
+
+:include lnxkpack.sp
+
+_WCRTLINK extern int  pthread_create( pthread_t *__thread, const pthread_attr_t *__attr, void *(*__start_routine)(void*), void *__arg );
+_WCRTLINK extern void pthread_exit( void *__exit_val );
+
+:include poppack.sp
+
+:include cplusepi.sp
+
+#endif /* !_PTHREAD_H_INCLUDED */

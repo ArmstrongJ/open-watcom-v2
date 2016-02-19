@@ -139,6 +139,15 @@ typedef long long       id_t;   /* pid_t, uid_t or gid_t */
 #define makedev(major,minor)    ((dev_t) (((major) << 8) | (minor)))
 :endsegment
 
+typedef struct {
+    pid_t        id;
+    void        *return_value;
+} pthread_t;
+
+typedef struct {
+    size_t heap_size;
+} pthread_attr_t;
+
 :include cplusepi.sp
 
 #endif
