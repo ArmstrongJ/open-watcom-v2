@@ -16,21 +16,25 @@ struct __thread_pass {
     pthread_t *thread;
 };
 
-void __thread_start(void *data)
+void __thread_start( void *data )
 {
 struct __thread_pass *passed;
 void *ret;
 
     passed = (struct __thread_pass *)data;
+
+    /* Initialize a running semaphore */
+    if(sem_init(&passed->thread->running_semaphore, 0, 1) == 0)
+        sem_wait(&passed->thread->running_semaphore);
+
+
     ret = passed->start_routine(passed->arg);
 
-    passed->thread->
 
     /* The pointer 'ret' must be returned to any waiting
      * "join" operations
      */
-    
-    _endthread();
+    pthread_exit(ret);
 }
 
 _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
@@ -60,7 +64,6 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
     
     if(ret >= 0) {
         thread->id = ret;
-        thread
         ret = 0;
     }
     

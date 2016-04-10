@@ -139,14 +139,19 @@ typedef long long       id_t;   /* pid_t, uid_t or gid_t */
 #define makedev(major,minor)    ((dev_t) (((major) << 8) | (minor)))
 :endsegment
 
+/* POSIX threads support */
+:segment LINUX
 typedef struct {
     pid_t        id;
+    sem_t        running_semaphore;
     void        *return_value;
+    
 } pthread_t;
 
 typedef struct {
     size_t heap_size;
 } pthread_attr_t;
+:endsegment
 
 :include cplusepi.sp
 
