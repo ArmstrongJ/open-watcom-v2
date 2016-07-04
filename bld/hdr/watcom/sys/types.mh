@@ -141,15 +141,28 @@ typedef long long       id_t;   /* pid_t, uid_t or gid_t */
 
 /* POSIX threads support */
 :segment LINUX
+
+/* For the definition of semaphores */
+:include semaphor.sp
+
 typedef struct {
     pid_t        id;
     sem_t        running_semaphore;
     void        *return_value;
-    
 } pthread_t;
 
 typedef struct {
-    size_t heap_size;
+    sem_t        access;
+    sem_t        mutex;
+    int          status;
+    pid_t        owner;
+} pthread_mutex_t;
+
+typedef void* pthread_mutexattr_t;
+
+typedef struct {
+    size_t stack_size;
+    void *stack_addr;
 } pthread_attr_t;
 :endsegment
 

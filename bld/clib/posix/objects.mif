@@ -32,6 +32,10 @@
 !inject ntohs.obj                                                                       l32 lpc lmp
 !inject opendir.obj                                                                     l32 lpc lmp
 !inject _prscfg.obj                                                                     l32 lpc lmp
+!inject ptcreate.obj                                                                    l32 lpc lmp
+!inject ptexit.obj                                                                      l32 lpc lmp
+!inject _ptint.obj                                                                      l32 lpc lmp
+!inject ptmutex.obj                                                                     l32 lpc lmp
 !inject readdir.obj                                                                     l32 lpc lmp
 !inject recv.obj                                                                        l32 lpc lmp
 !inject recvfrom.obj                                                                    l32 lpc lmp
