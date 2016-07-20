@@ -41,6 +41,8 @@
 
 #include <stdio.h>
 
+static volatile int id_count = 0;
+
 _WCRTLINK int pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr)
 {
 int res;
@@ -49,17 +51,17 @@ int res;
         return( EINVAL );
 
     if(sem_init(&__mutex->access, 0, 1) != 0) {
-        printf("Access fail\n");
         return( errno );
     }
     
     if(sem_init(&__mutex->mutex, 0, 1) != 0) {
-        printf("Mutex fail\n");
         return( errno );
     }
     
     __mutex->status = MUTEX_STATUS_READY;
+    __mutex->id = id_count++;
     __mutex->owner = (pid_t)-1;
+    
     return( 0 );   
 }
 
@@ -108,15 +110,13 @@ int ret;
     
     ret = -1;
     
-    printf("Mutex wait\n");
     if(sem_wait(&__mutex->mutex) == 0) {
-        printf("Inside, now lock\n");
         sem_wait(&__mutex->access);
-        printf("Locked\n");
+        
         __mutex->status = MUTEX_STATUS_LOCKED;
         __mutex->owner = gettid();
         ret = 0;
-        printf("Allow access\n");
+        
         sem_post(&__mutex->access);
     }
     

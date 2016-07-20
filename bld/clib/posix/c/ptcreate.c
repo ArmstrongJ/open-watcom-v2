@@ -6,7 +6,7 @@
 #include "rterrno.h"
 #include "_ptint.h"
 
-#include <stdio.h>
+#include <string.h>
 
 /* By default, allow OpenWatcom's thread library
  * to handle this...
@@ -30,20 +30,15 @@ void *arg;
 
     passed = (struct __thread_pass *)data;
 
-    printf("Register\n");
     passed->thread = __register_thread();
-    
-    printf("Register-done post\n");
+
     sem_post(&passed->registered);
 
     start_routine = passed->start_routine;
     arg = passed->arg;
     
-    /* Destroy the passing structure */
-    free(passed);
-
-    ret = passed->start_routine(passed->arg);
-
+    ret = start_routine(arg);
+    
     /* The pointer 'ret' must be returned to any waiting
      * "join" operations
      */
@@ -80,13 +75,9 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
         return -1;
     }
     
-    printf("Assign\n");
     passed->start_routine = start_routine;
     passed->arg = arg;
     passed->thread = NULL;
-    
-    printf("Sem init\n");
-    sem_init(&passed->registered, 0, 1);
     
     if(stack == NULL && stack_size > 0) {
         stack = (char *)malloc(stack_size*sizeof(char *));
@@ -97,14 +88,13 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
         }
     }
     
-    printf("Sem wait registered\n");
+    if(sem_init(&passed->registered, 0, 1) != 0) {
+        return -1;
+    }
+    
     sem_wait(&passed->registered);
     
-    printf("Launch\n");
-    ret = _beginthread( __thread_start, stack, stack_size, (void *)passed );
-    
-    printf("Sem wait registered\n");
-    sem_wait(&passed->registered);
+    ret = _beginthread( __thread_start, NULL, 0, (void *)passed );
     
     /* Wait for registration */
     sem_wait(&passed->registered);
@@ -119,6 +109,9 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
     
     /* Destroy the registration semaphore */
     sem_destroy(&passed->registered);
+
+    /* Destroy the passing structure */
+    free(passed);
 
     return( ret );
 }

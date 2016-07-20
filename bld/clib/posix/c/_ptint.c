@@ -63,14 +63,12 @@ struct __ptcatalog_struct *walker;
     if(__ptcatalog_mutex == NULL) {
         __ptcatalog_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
         if(__ptcatalog_mutex != NULL)
-            printf("Mutex init = %d\n", pthread_mutex_init(__ptcatalog_mutex, NULL));
+            pthread_mutex_init(__ptcatalog_mutex, NULL);
     }
 
-    printf("Lock int list\n");
     
     /* Attach to the linked list */
     if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
-        printf("Lock int list complete\n");
         if(__ptcatalog == NULL)
             __ptcatalog = newthread;
         else {
@@ -78,7 +76,6 @@ struct __ptcatalog_struct *walker;
             while(walker->next != NULL) walker = walker->next;
             walker->next = newthread;
         }
-        printf("List update done\n");
         pthread_mutex_unlock(__ptcatalog_mutex);
     } else {
         _RWD_errno = EBUSY;
@@ -118,7 +115,6 @@ struct __ptcatalog_struct *walker, *previous;
         
         pthread_mutex_unlock(__ptcatalog_mutex);
     }
-    
     return walker;
 }
 

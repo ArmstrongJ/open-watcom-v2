@@ -13,5 +13,5 @@ pthread_t *myself;
     __unregister_thread(myself);
     
     /* This routine also needs to notify waiting threads */
-    
+    _endthread();
 }    

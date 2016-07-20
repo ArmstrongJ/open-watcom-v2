@@ -75,7 +75,7 @@ _WCRTLINK int sem_trywait( sem_t *sem )
         return( 0 );
     do {
         ret = __futex( &sem->value, FUTEX_WAIT_PRIVATE, 0, &timer );
-    } while( !__decrement_if_positive( &sem->value ) );
+    } while( ret == 0 && !__decrement_if_positive( &sem->value ) );
     if( ret == 0 )
         return( 0 );
     _RWD_errno = EAGAIN;
