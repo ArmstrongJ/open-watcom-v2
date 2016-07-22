@@ -57,7 +57,20 @@ struct __ptcatalog_struct *walker;
     
     /* Initialize some aspects of our pthread object */
     newthread->pt->id = newthread->tid;
+    
+    newthread->pt->running_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+    if(newthread->pt->running_mutex != NULL)
+         pthread_mutex_init(newthread->pt->running_mutex, NULL);
+
+    newthread->pt->waiting_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+    if(newthread->pt->waiting_mutex != NULL)
+         pthread_mutex_init(newthread->pt->waiting_mutex, NULL);
+    
+    newthread->pt->waiters = 0;
+    
     newthread->pt->return_value = NULL;
+    /* Thread internal data is now initialized */
+
 
     /* Check if we've ever created a thread */
     if(__ptcatalog_mutex == NULL) {

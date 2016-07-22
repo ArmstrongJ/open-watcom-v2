@@ -21,11 +21,14 @@ _WCRTLINK extern int  pthread_create( pthread_t *__thread, const pthread_attr_t 
 _WCRTLINK extern void pthread_exit( void *__exit_val );
 
 /* Mutexes */
-_WCRTLINK int pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr);
-_WCRTLINK int pthread_mutex_destroy(pthread_mutex_t *__mutex);
-_WCRTLINK int pthread_mutex_trylock(pthread_mutex_t *__mutex);
-_WCRTLINK int pthread_mutex_lock(pthread_mutex_t *__mutex);
-_WCRTLINK int pthread_mutex_unlock(pthread_mutex_t *__mutex);
+_WCRTLINK extern int pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr);
+_WCRTLINK extern int pthread_mutex_destroy(pthread_mutex_t *__mutex);
+_WCRTLINK extern int pthread_mutex_trylock(pthread_mutex_t *__mutex);
+_WCRTLINK extern int pthread_mutex_lock(pthread_mutex_t *__mutex);
+_WCRTLINK extern int pthread_mutex_unlock(pthread_mutex_t *__mutex);
+
+/* Thread joining */
+_WCRTLINK extern int pthread_join(pthread_t __thread, void **__value_ptr);
 
 :include poppack.sp
 

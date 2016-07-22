@@ -146,18 +146,20 @@ typedef long long       id_t;   /* pid_t, uid_t or gid_t */
 :include semaphor.sp
 
 typedef struct {
-    pid_t        id;
-    sem_t        running_semaphore;
-    void        *return_value;
-} pthread_t;
-
-typedef struct {
     sem_t        access;
     sem_t        mutex;
     int          status;
     pid_t        owner;
     int          id;
 } pthread_mutex_t;
+
+typedef struct {
+    pid_t            id;
+    pthread_mutex_t *running_mutex;
+    pthread_mutex_t *waiting_mutex;
+    int              waiters;
+    void            *return_value;
+} pthread_t;
 
 typedef void* pthread_mutexattr_t;
 

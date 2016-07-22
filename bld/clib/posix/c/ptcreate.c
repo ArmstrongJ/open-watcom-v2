@@ -37,9 +37,13 @@ void *arg;
     start_routine = passed->start_routine;
     arg = passed->arg;
     
+    /* Lock our running mutex to allow for future joins */
+    pthread_mutex_lock(passed->thread->running_mutex);
+    
+    /* Call the user routine */
     ret = start_routine(arg);
     
-    /* The pointer 'ret' must be returned to any waiting
+    /* The pointer 'ret' must bo returned to any waiting
      * "join" operations
      */
     pthread_exit(ret);

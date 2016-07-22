@@ -35,6 +35,7 @@
 !inject ptcreate.obj                                                                    l32 lpc lmp
 !inject ptexit.obj                                                                      l32 lpc lmp
 !inject _ptint.obj                                                                      l32 lpc lmp
+!inject ptjoin.obj                                                                      l32 lpc lmp
 !inject ptmutex.obj                                                                     l32 lpc lmp
 !inject readdir.obj                                                                     l32 lpc lmp
 !inject recv.obj                                                                        l32 lpc lmp
