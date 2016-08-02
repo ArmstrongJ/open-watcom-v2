@@ -153,6 +153,8 @@ typedef struct {
     int          id;
 } pthread_mutex_t;
 
+typedef void* pthread_mutexattr_t;
+
 typedef struct {
     pid_t            id;
     pthread_mutex_t *running_mutex;
@@ -161,7 +163,13 @@ typedef struct {
     void            *return_value;
 } pthread_t;
 
-typedef void* pthread_mutexattr_t;
+typedef struct {
+    sem_t            wait_block;
+    pthread_mutex_t *waiting_mutex;
+    int              waiters;
+} pthread_cond_t;
+
+typedef void* pthread_condattr_t;
 
 typedef struct {
     size_t stack_size;

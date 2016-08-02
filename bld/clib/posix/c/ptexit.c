@@ -2,6 +2,7 @@
 #include "variety.h"
 #include <pthread.h>
 #include <process.h>
+#include <stdio.h>
 
 #include "_ptint.h"
 
@@ -11,6 +12,10 @@ int waiters_local;
 pthread_t *myself;
 
     myself = __get_current_thread( );
+    if(myself == NULL) {
+        fprintf(stderr, "ERROR: thread was null during de-register\n");
+        _endthread();
+    }
     __unregister_thread(myself);
     
     /* Unlock to release any joins */

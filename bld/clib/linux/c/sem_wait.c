@@ -59,6 +59,36 @@ _WCRTLINK int sem_wait( sem_t *sem )
     return( 0 );
 }
 
+_WCRTLINK int sem_timedwait( sem_t *sem, struct timespec *abstime ) 
+{
+    int             ret;
+    struct timespec reltime;
+
+    if( sem == NULL ) {
+        _RWD_errno = EINVAL;
+        return( -1 );
+    }
+    if( __decrement_if_positive( &sem->value ) )
+        return( 0 );
+    do {
+        clock_gettime( CLOCK_MONOTONIC, &reltime );
+        reltime.tv_sec = abstime->tv_sec - reltime.tv_sec;
+        reltime.tv_nsec = abstime->tv_nsec - reltime.tv_nsec;
+        if(reltime.tv_nsec < 0) {
+            reltime.tv_sec--;
+            reltime.tv_nsec += 1E+9;
+        }
+
+        ret = __futex( &sem->value, FUTEX_WAIT_PRIVATE, 0, &reltime );
+        if(ret == -ETIMEDOUT) {
+            _RWD_errno = ETIMEDOUT;
+            return( -1 );
+        }
+         
+    } while( !__decrement_if_positive( &sem->value ) );
+    return( 0 );
+}
+
 _WCRTLINK int sem_trywait( sem_t *sem ) 
 {
     struct timespec timer;

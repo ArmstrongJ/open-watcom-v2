@@ -118,17 +118,19 @@ struct __ptcatalog_struct *walker, *previous;
         
         /* Remove it from the linked list */
         if(walker != NULL && previous != NULL)
-            previous = walker->next;
+            previous->next = walker->next;
         else if(walker != NULL)
             __ptcatalog = walker->next;
         
         /* Remove its last link */
-        if(walker != NULL)
+        if(walker != NULL) {
             walker->next = NULL;
+            free(walker);
+        }
         
         pthread_mutex_unlock(__ptcatalog_mutex);
     }
-    return walker;
+    return __ptcatalog;
 }
 
 void __unregister_thread( pthread_t *thread )
