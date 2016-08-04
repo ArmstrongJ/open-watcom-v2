@@ -73,7 +73,7 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
             stack = (char *)attr->stack_addr;
     }
     
-    passed = (struct __thread_pass *)malloc(sizeof(struct __thread_pass *));
+    passed = (struct __thread_pass *)malloc(sizeof(struct __thread_pass));
     if(passed == NULL) {
         _RWD_errno = ENOMEM;
         return -1;
