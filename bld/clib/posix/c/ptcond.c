@@ -36,8 +36,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <time.h>
-#include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
 _WCRTLINK int pthread_cond_init(pthread_cond_t *__cond, const pthread_condattr_t *__attr)
 {
@@ -122,7 +121,7 @@ int res;
 
 _WCRTLINK int pthread_cond_signal(pthread_cond_t *__cond)
 {
-    sem_post( &__cond->wait_block );
+    return sem_post( &__cond->wait_block );
 }
 
 _WCRTLINK int pthread_cond_broadcast(pthread_cond_t *__cond)
@@ -136,4 +135,6 @@ int waiters;
         
         sem_post( &__cond->wait_block );
     } while(waiters > 1);
+    
+    return 0;
 }

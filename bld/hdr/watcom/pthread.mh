@@ -38,6 +38,12 @@ _WCRTLINK extern int pthread_cond_broadcast(pthread_cond_t *__cond);
 _WCRTLINK extern int pthread_cond_wait(pthread_cond_t *__cond, pthread_mutex_t *__mutex);
 _WCRTLINK extern int pthread_cond_timedwait(pthread_cond_t *__cond, pthread_mutex_t *__mutex, const struct timespec *abstime);
 
+/* Thread-specific keys */
+_WCRTLINK extern int pthread_key_create( pthread_key_t *__key, void (*__destructor)(void*) );
+_WCRTLINK extern int pthread_key_delete(pthread_key_t __key);
+_WCRTLINK extern int pthread_setspecific(pthread_key_t __key, void *__value);
+_WCRTLINK extern void *pthread_getspecific(pthread_key_t __key);
+
 :include poppack.sp
 
 :include cplusepi.sp

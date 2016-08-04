@@ -9,13 +9,33 @@
 
 #include "_ptint.h"
 
+/* Per-thread key lists */
+struct _ptkeys {
+    pthread_key_t   id;
+    void            *value;
+    struct _ptkeys  *next;
+};
+
+/* Thread registry */
 static struct __ptcatalog_struct {
     pid_t     tid;
     pthread_t *pt;
+    struct _ptkeys *keys;
+    
     struct __ptcatalog_struct *next;
 } *__ptcatalog;
 
 static pthread_mutex_t *__ptcatalog_mutex;
+
+/* Thread-specific key registry */
+static struct __ptkeylist_struct {
+    pthread_key_t   id;
+    void (*destructor)(void*);
+    struct __ptkeylist_struct *next;
+} *__ptkeylist;
+
+static long keyid_count;
+static pthread_mutex_t *__ptkeylist_mutex;
 
 pthread_t *__get_thread( pid_t tid )
 {
@@ -34,6 +54,206 @@ struct __ptcatalog_struct *walker;
     }
     
     return ret;
+}
+
+pthread_key_t __register_pkey( void (*destructor)(void*) )
+{
+struct __ptkeylist_struct *newkey;
+struct __ptkeylist_struct *walker;
+    
+    newkey = (struct __ptkeylist_struct *)malloc(sizeof(struct __ptkeylist_struct));
+    if( newkey == NULL ) {
+        _RWD_errno = ENOMEM;
+        return (pthread_key_t)(-1);
+    }
+    
+    newkey->id = (pthread_key_t)keyid_count++;
+    newkey->destructor = destructor;
+    newkey->next = NULL;
+    
+     if(__ptkeylist_mutex == NULL) {
+        __ptkeylist_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+        if(__ptkeylist_mutex != NULL)
+            pthread_mutex_init(__ptkeylist_mutex, NULL);
+    }
+    
+    if(pthread_mutex_lock(__ptkeylist_mutex) == 0) {
+        if(__ptkeylist == NULL)
+            __ptkeylist = newkey;
+        else {
+            walker = __ptkeylist;
+            while(walker->next != NULL) walker = walker->next;
+            walker->next = newkey;
+        }
+        pthread_mutex_unlock(__ptkeylist_mutex);
+    }
+    
+    return newkey->id;
+}
+
+void __destroy_pkey( pthread_key_t id )
+{
+struct __ptkeylist_struct *walker, *previous;
+
+    walker = NULL;
+    previous = NULL;
+
+    if(pthread_mutex_lock(__ptkeylist_mutex) == 0) {
+        walker = __ptkeylist;
+        while(walker != NULL) {
+            if(walker->id == id) {
+                /* First, remove from the master list */
+                if(previous == NULL)
+                    __ptkeylist = walker->next;
+                else
+                    previous->next = walker->next;
+                    
+                free(walker);
+                break;
+            }
+        
+            walker = walker->next;
+        }
+        pthread_mutex_unlock(__ptkeylist_mutex);
+    }
+}
+
+int __valid_pkey_id( pthread_key_t id )
+{
+struct __ptkeylist_struct *walker;
+int ret;
+
+    ret = EINVAL;
+    if(pthread_mutex_lock(__ptkeylist_mutex) == 0) {
+        walker = __ptkeylist;
+        while(walker != NULL) {
+            if(walker->id == id) {
+                ret = 0;
+                break;
+            }
+            walker = walker->next;
+        }
+        pthread_mutex_unlock(__ptkeylist_mutex);
+    }
+    
+    return( ret );
+}
+
+int __set_pkey_value( pthread_key_t id, void *value )
+{
+pid_t tid;
+struct __ptcatalog_struct *walker;
+struct _ptkeys *keywalker, *keylast, *keynew;
+int ret;
+
+    walker = NULL;
+    tid = gettid();
+    ret = 0;    
+    
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        
+        /* Find the thread */
+        walker = __ptcatalog;
+        while(walker != NULL) {
+            if(walker->tid == tid) {
+            
+                /* Now find the key */
+                keywalker = walker->keys;
+                keylast = NULL;
+                while(keywalker != NULL) {
+                    if(keywalker->id == id) {
+                        keywalker->value = value;
+                        break;
+                    }
+                    keylast = keywalker;
+                    keywalker = keywalker->next;
+                }
+                
+                /* We never found a matching key, so add it now */
+                if(keywalker == NULL) {
+                    keynew = (struct _ptkeys *)malloc(sizeof(struct _ptkeys));
+                    if(keynew != NULL) {
+                        keynew->id = id;
+                        keynew->value = value;
+                        keynew->next = NULL;
+                        
+                        if(keylast != NULL)
+                            keylast->next = keynew;
+                        else
+                            walker->keys = keynew;
+                            
+                    } else {
+                        ret = ENOMEM;
+                    }
+                }
+                
+                break;
+            }
+            walker = walker->next;
+        }
+        
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+void *__get_pkey_value( pthread_key_t id )
+{
+pid_t tid;
+struct __ptcatalog_struct *walker;
+struct _ptkeys *keywalker;
+void *ret;
+
+    walker = NULL;
+    tid = gettid();
+    ret = NULL;    
+    
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        
+        /* Find the thread */
+        walker = __ptcatalog;
+        while(walker != NULL) {
+            if(walker->tid == tid) {
+            
+                /* Now find the key */
+                keywalker = walker->keys;
+                while(keywalker != NULL) {
+                    if(keywalker->id == id) {
+                        ret = keywalker->value;
+                        break;
+                    }
+                    keywalker = keywalker->next;
+                }
+                
+                break;
+            }
+            walker = walker->next;
+        }
+        
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+void __call_pkey_destructor( pthread_key_t id, void *value )
+{
+struct __ptkeylist_struct *walker;
+    
+    if(pthread_mutex_lock(__ptkeylist_mutex) == 0) {
+        
+        walker = __ptkeylist;
+        while(walker != NULL) {
+            if(walker->id == id && walker->destructor != NULL) {
+                walker->destructor(value);
+                break;
+            }
+            walker = walker->next;
+        }
+    
+        pthread_mutex_unlock(__ptkeylist_mutex);
+    }
 }
 
 pthread_t *__register_thread( )
@@ -68,6 +288,9 @@ struct __ptcatalog_struct *walker;
     
     newthread->pt->waiters = 0;
     
+    /* Only store to the linked list of keys when requested */
+    newthread->keys = NULL;
+    
     newthread->pt->return_value = NULL;
     /* Thread internal data is now initialized */
 
@@ -101,6 +324,7 @@ struct __ptcatalog_struct *walker;
 static struct __ptcatalog_struct *__remove_thread( pid_t tid )
 {
 struct __ptcatalog_struct *walker, *previous;
+struct _ptkeys *keywalker, *keynext;
 
     walker = NULL;
 
@@ -122,13 +346,29 @@ struct __ptcatalog_struct *walker, *previous;
         else if(walker != NULL)
             __ptcatalog = walker->next;
         
-        /* Remove its last link */
+        /* Release the catalog now - no longer accessing it */
+        pthread_mutex_unlock(__ptcatalog_mutex);
+        
+        /* Remove its last link and free*/
         if(walker != NULL) {
             walker->next = NULL;
+            
+            /* Clean up and destroy appropriate keys */
+            keywalker = walker->keys;
+            keynext = NULL;
+            while(keywalker != NULL) {
+                if(keywalker->value != NULL) {
+                    __call_pkey_destructor(keywalker->id, keywalker->value);
+                }
+                keynext = keywalker->next;
+                free(keywalker);
+                keywalker = keynext;
+            }
+            
+            /* And free the memory */
             free(walker);
         }
         
-        pthread_mutex_unlock(__ptcatalog_mutex);
     }
     return __ptcatalog;
 }

@@ -59,7 +59,7 @@ _WCRTLINK int sem_wait( sem_t *sem )
     return( 0 );
 }
 
-_WCRTLINK int sem_timedwait( sem_t *sem, struct timespec *abstime ) 
+_WCRTLINK int sem_timedwait( sem_t *sem, const struct timespec *abstime ) 
 {
     int             ret;
     struct timespec reltime;

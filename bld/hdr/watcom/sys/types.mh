@@ -155,6 +155,8 @@ typedef struct {
 
 typedef void* pthread_mutexattr_t;
 
+typedef int pthread_key_t;
+
 typedef struct {
     pid_t            id;
     pthread_mutex_t *running_mutex;
