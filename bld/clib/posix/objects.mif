@@ -40,6 +40,7 @@
 !inject ptjoin.obj                                                                      l32 lpc lmp
 !inject ptkey.obj                                                                       l32 lpc lmp
 !inject ptmutex.obj                                                                     l32 lpc lmp
+!inject ptrwlock.obj                                                                    l32 lpc lmp
 !inject readdir.obj                                                                     l32 lpc lmp
 !inject recv.obj                                                                        l32 lpc lmp
 !inject recvfrom.obj                                                                    l32 lpc lmp

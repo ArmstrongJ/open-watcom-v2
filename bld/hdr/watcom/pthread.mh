@@ -47,6 +47,15 @@ _WCRTLINK extern int pthread_key_delete(pthread_key_t __key);
 _WCRTLINK extern int pthread_setspecific(pthread_key_t __key, void *__value);
 _WCRTLINK extern void *pthread_getspecific(pthread_key_t __key);
 
+/* Read-Write locks */
+_WCRTLINK extern int pthread_rwlock_init( pthread_rwlock_t *__rwlock, const pthread_rwlockattr_t *__attr );
+_WCRTLINK extern int pthread_rwlock_destroy(pthread_rwlock_t *__rwlock);
+_WCRTLINK extern int pthread_rwlock_unlock(pthread_rwlock_t *__rwlock);
+_WCRTLINK extern int pthread_rwlock_tryrdlock(pthread_rwlock_t *__rwlock);
+_WCRTLINK extern int pthread_rwlock_rdlock(pthread_rwlock_t *__rwlock);
+_WCRTLINK extern int pthread_rwlock_trywrlock(pthread_rwlock_t *__rwlock);
+_WCRTLINK extern int pthread_rwlock_wrlock(pthread_rwlock_t *__rwlock);
+
 :include poppack.sp
 
 :include cplusepi.sp

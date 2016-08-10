@@ -35,6 +35,7 @@
 #define MUTEX_STATUS_LOCKED     101
 #define MUTEX_STATUS_DESTROYED  200
 
+#include "variety.h"
 #include <semaphore.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -79,7 +80,9 @@ int res;
 
     if(sem_destroy(&__mutex->access) != 0)
         return( errno );
-        
+    
+    /* Need to release the mutex semaphore now */
+    sem_post(&__mutex->mutex);
     if(sem_destroy(&__mutex->mutex) != 0)
         return( errno );
         
@@ -136,6 +139,27 @@ int ret;
             __mutex->status = MUTEX_STATUS_READY;
             __mutex->owner = (pid_t)-1;
             sem_post(&__mutex->mutex);
+        } else if(__mutex->status == MUTEX_STATUS_DESTROYED)
+            ret = EINVAL;
+        else
+            ret = EBUSY;
+        
+        sem_post(&__mutex->access);
+    }
+    
+    return( ret );
+}
+
+_WCRTLINK int __pthread_mutex_mylock(pthread_mutex_t *__mutex)
+{
+int ret;
+
+    ret = -1;
+    if(sem_wait(&__mutex->access) == 0) {
+        if(__mutex->status == MUTEX_STATUS_READY)
+            ret = -1;
+        else if(__mutex->owner == gettid()) {
+            ret = 0;
         } else if(__mutex->status == MUTEX_STATUS_DESTROYED)
             ret = EINVAL;
         else

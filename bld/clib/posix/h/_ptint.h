@@ -17,4 +17,11 @@ int __valid_pkey_id( pthread_key_t id );
 int __set_pkey_value( pthread_key_t id, void *value );
 void *__get_pkey_value( pthread_key_t id );
 
+/* Check if a mutex is owned by the current thread 
+ * 0  = yes
+ * -1 = no
+ * >0 = error (no)
+ */
+int __pthread_mutex_mylock(pthread_mutex_t *__mutex);
+
 #endif /* _PT_INTERNAL_H_INCLUDED */
