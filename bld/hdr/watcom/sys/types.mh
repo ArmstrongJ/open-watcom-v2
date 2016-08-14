@@ -181,6 +181,10 @@ typedef struct {
 typedef void* pthread_rwlockattr_t;
 
 typedef struct {
+    int *value;
+} pthread_spinlock_t;
+
+typedef struct {
     size_t stack_size;
     void *stack_addr;
 } pthread_attr_t;

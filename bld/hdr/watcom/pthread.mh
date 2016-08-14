@@ -59,6 +59,16 @@ _WCRTLINK extern int pthread_rwlock_rdlock(pthread_rwlock_t *__rwlock);
 _WCRTLINK extern int pthread_rwlock_trywrlock(pthread_rwlock_t *__rwlock);
 _WCRTLINK extern int pthread_rwlock_wrlock(pthread_rwlock_t *__rwlock);
 
+:segment LINUX
+/* Spin locks (Linux only due to use of atomic ops) */
+_WCRTLINK extern int pthread_spin_init(pthread_spinlock_t *__lock, int __ignored_pshared);
+_WCRTLINK extern int pthread_spin_destroy(pthread_spinlock_t *__lock);
+_WCRTLINK extern int pthread_spin_lock(pthread_spinlock_t *__lock);
+_WCRTLINK extern int pthread_spin_trylock(pthread_spinlock_t *__lock);
+_WCRTLINK extern int pthread_spin_unlock(pthread_spinlock_t *__lock);
+
+:endsegment
+
 :include poppack.sp
 
 :include cplusepi.sp
