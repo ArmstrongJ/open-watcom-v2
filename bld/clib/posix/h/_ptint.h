@@ -24,4 +24,7 @@ void *__get_pkey_value( pthread_key_t id );
  */
 int __pthread_mutex_mylock(pthread_mutex_t *__mutex);
 
+/* Cancellation signal, not to be used outside runtime lib */
+#define SIGCANCEL 36
+
 #endif /* _PT_INTERNAL_H_INCLUDED */

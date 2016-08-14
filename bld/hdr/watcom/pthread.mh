@@ -30,6 +30,9 @@ _WCRTLINK extern int pthread_mutex_unlock(pthread_mutex_t *__mutex);
 /* Thread joining */
 _WCRTLINK extern int pthread_join(pthread_t __thread, void **__value_ptr);
 
+/* Cancellation */
+_WCRTLINK extern int pthread_cancel(pthread_t __thread);
+
 /* Equality */
 _WCRTLINK extern int pthread_equal( pthread_t __pt1, pthread_t __pt2 );
 

@@ -20,6 +20,11 @@ struct __thread_pass {
     sem_t      registered;
 };
 
+static void __thread_handle_cancellation(int signal)
+{
+    pthread_exit(NULL);
+}
+
 void __thread_start( void *data )
 {
 struct __thread_pass *passed;
@@ -39,6 +44,9 @@ void *arg;
     
     /* Lock our running mutex to allow for future joins */
     pthread_mutex_lock(passed->thread->running_mutex);
+    
+    /* Set up a signal handler for thread cancellation if applicable */
+    signal(SIGCANCEL, __thread_handle_cancellation);
     
     /* Call the user routine */
     ret = start_routine(arg);
