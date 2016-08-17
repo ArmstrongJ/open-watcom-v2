@@ -49,16 +49,16 @@ _WCRTLINK int pthread_cond_init(pthread_cond_t *__cond, const pthread_condattr_t
     
     pthread_mutex_init( __cond->waiting_mutex, NULL );
     
+    sem_init( &__cond->wait_block, 0, 1 );
+    
     pthread_mutex_lock( __cond->waiting_mutex );
     __cond->waiters = 0;
     pthread_mutex_unlock( __cond->waiting_mutex );
-    
-    sem_init( &__cond->wait_block, 0, 1 );
-    
+
     return( 0 );   
 }
 
-_WCRTLINK int pthread_cond_destroy(pthread_cond_t *__cond, const pthread_condattr_t *__attr)
+_WCRTLINK int pthread_cond_destroy(pthread_cond_t *__cond)
 {
     if( __cond == NULL )
         return( EINVAL );
@@ -81,7 +81,12 @@ _WCRTLINK int pthread_cond_timedwait(pthread_cond_t *__cond,
 int res;
 
     pthread_mutex_lock( __cond->waiting_mutex );
+    
+    /* If we're the first waiter, increment the semaphore now */
+    if(__cond->waiters == 0)
+        sem_wait(&__cond->wait_block);
     __cond->waiters++;
+    
     pthread_mutex_unlock( __cond->waiting_mutex );
 
     pthread_mutex_unlock(__mutex);
@@ -89,6 +94,11 @@ int res;
 
     pthread_mutex_lock( __cond->waiting_mutex );
     __cond->waiters--;
+    
+    /* If we're the last waiter, release the semaphore */
+    if(__cond->waiters == 0)
+        sem_post(&__cond->wait_block);
+        
     pthread_mutex_unlock( __cond->waiting_mutex );
 
     if(res == 0)
@@ -103,7 +113,12 @@ _WCRTLINK int pthread_cond_wait(pthread_cond_t *__cond,
 int res;
 
     pthread_mutex_lock( __cond->waiting_mutex );
+    
+    /* If we're the first waiter, increment the semaphore now */
+    if(__cond->waiters == 0)
+        sem_wait(&__cond->wait_block);
     __cond->waiters++;
+    
     pthread_mutex_unlock( __cond->waiting_mutex );
 
     pthread_mutex_unlock(__mutex);
@@ -111,6 +126,11 @@ int res;
     
     pthread_mutex_lock( __cond->waiting_mutex );
     __cond->waiters--;
+    
+    /* If we're the last waiter, release the semaphore */
+    if(__cond->waiters == 0)
+        sem_post(&__cond->wait_block);
+        
     pthread_mutex_unlock( __cond->waiting_mutex );
     
     if(res == 0)
@@ -134,7 +154,7 @@ int waiters;
         pthread_mutex_unlock( __cond->waiting_mutex );
         
         sem_post( &__cond->wait_block );
-    } while(waiters > 1);
+    } while(waiters > 0);
     
     return 0;
 }

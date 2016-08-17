@@ -28,21 +28,21 @@ _WCRTLINK extern int pthread_mutex_lock(pthread_mutex_t *__mutex);
 _WCRTLINK extern int pthread_mutex_unlock(pthread_mutex_t *__mutex);
 
 /* Thread joining */
-_WCRTLINK extern int pthread_join(pthread_t __thread, void **__value_ptr);
+_WCRTLINK extern int pthread_join( pthread_t __thread, void **__value_ptr );
 
 /* Cancellation */
-_WCRTLINK extern int pthread_cancel(pthread_t __thread);
+_WCRTLINK extern int pthread_cancel( pthread_t __thread );
 
 /* Equality */
 _WCRTLINK extern int pthread_equal( pthread_t __pt1, pthread_t __pt2 );
 
 /* Conditions */
-_WCRTLINK extern int pthread_cond_init(pthread_cond_t *__cond, const pthread_condattr_t *__attr);
-_WCRTLINK extern int pthread_cond_destroy(pthread_cond_t *__cond, const pthread_condattr_t *__attr);
-_WCRTLINK extern int pthread_cond_signal(pthread_cond_t *__cond);
-_WCRTLINK extern int pthread_cond_broadcast(pthread_cond_t *__cond);
-_WCRTLINK extern int pthread_cond_wait(pthread_cond_t *__cond, pthread_mutex_t *__mutex);
-_WCRTLINK extern int pthread_cond_timedwait(pthread_cond_t *__cond, pthread_mutex_t *__mutex, const struct timespec *abstime);
+_WCRTLINK extern int pthread_cond_init( pthread_cond_t *__cond, const pthread_condattr_t *__attr );
+_WCRTLINK extern int pthread_cond_destroy( pthread_cond_t *__cond );
+_WCRTLINK extern int pthread_cond_signal( pthread_cond_t *__cond );
+_WCRTLINK extern int pthread_cond_broadcast( pthread_cond_t *__cond );
+_WCRTLINK extern int pthread_cond_wait( pthread_cond_t *__cond, pthread_mutex_t *__mutex );
+_WCRTLINK extern int pthread_cond_timedwait( pthread_cond_t *__cond, pthread_mutex_t *__mutex, const struct timespec *abstime );
 
 /* Thread-specific keys */
 _WCRTLINK extern int pthread_key_create( pthread_key_t *__key, void (*__destructor)(void*) );
@@ -52,12 +52,19 @@ _WCRTLINK extern void *pthread_getspecific(pthread_key_t __key);
 
 /* Read-Write locks */
 _WCRTLINK extern int pthread_rwlock_init( pthread_rwlock_t *__rwlock, const pthread_rwlockattr_t *__attr );
-_WCRTLINK extern int pthread_rwlock_destroy(pthread_rwlock_t *__rwlock);
-_WCRTLINK extern int pthread_rwlock_unlock(pthread_rwlock_t *__rwlock);
-_WCRTLINK extern int pthread_rwlock_tryrdlock(pthread_rwlock_t *__rwlock);
-_WCRTLINK extern int pthread_rwlock_rdlock(pthread_rwlock_t *__rwlock);
-_WCRTLINK extern int pthread_rwlock_trywrlock(pthread_rwlock_t *__rwlock);
-_WCRTLINK extern int pthread_rwlock_wrlock(pthread_rwlock_t *__rwlock);
+_WCRTLINK extern int pthread_rwlock_destroy( pthread_rwlock_t *__rwlock );
+_WCRTLINK extern int pthread_rwlock_unlock( pthread_rwlock_t *__rwlock );
+_WCRTLINK extern int pthread_rwlock_tryrdlock( pthread_rwlock_t *__rwlock );
+_WCRTLINK extern int pthread_rwlock_rdlock( pthread_rwlock_t *__rwlock );
+_WCRTLINK extern int pthread_rwlock_trywrlock( pthread_rwlock_t *__rwlock );
+_WCRTLINK extern int pthread_rwlock_wrlock( pthread_rwlock_t *__rwlock );
+
+/* Barriers */
+_WCRTLINK extern int pthread_barrier_init( pthread_barrier_t *__barrier,
+                                           const pthread_barrierattr_t *__attr, 
+                                           unsigned __count );
+_WCRTLINK extern int pthread_barrier_destroy( pthread_barrier_t *__barrier );
+_WCRTLINK extern int pthread_barrier_wait( pthread_barrier_t *__barrier );
 
 :segment LINUX
 /* Spin locks (Linux only due to use of atomic ops) */
@@ -66,7 +73,6 @@ _WCRTLINK extern int pthread_spin_destroy(pthread_spinlock_t *__lock);
 _WCRTLINK extern int pthread_spin_lock(pthread_spinlock_t *__lock);
 _WCRTLINK extern int pthread_spin_trylock(pthread_spinlock_t *__lock);
 _WCRTLINK extern int pthread_spin_unlock(pthread_spinlock_t *__lock);
-
 :endsegment
 
 :include poppack.sp

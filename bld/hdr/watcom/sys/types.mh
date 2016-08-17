@@ -188,6 +188,16 @@ typedef struct {
     size_t stack_size;
     void *stack_addr;
 } pthread_attr_t;
+
+typedef struct {
+    pthread_mutex_t *access;
+    pthread_cond_t *cond;
+    unsigned count;
+    unsigned limit;
+} pthread_barrier_t;
+
+typedef void* pthread_barrierattr_t;
+
 :endsegment
 
 :include cplusepi.sp
