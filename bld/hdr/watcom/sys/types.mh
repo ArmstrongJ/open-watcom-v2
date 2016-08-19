@@ -163,6 +163,7 @@ typedef struct {
     pthread_mutex_t *waiting_mutex;
     int              waiters;
     void            *return_value;
+    int              cancel_status;
 } pthread_t;
 
 typedef struct {

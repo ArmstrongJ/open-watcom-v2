@@ -288,6 +288,8 @@ struct __ptcatalog_struct *walker;
     
     newthread->pt->waiters = 0;
     
+    newthread->pt->cancel_status = PTHREAD_CANCEL_ENABLE + PTHREAD_CANCEL_DEFERRED;
+    
     /* Only store to the linked list of keys when requested */
     newthread->keys = NULL;
     

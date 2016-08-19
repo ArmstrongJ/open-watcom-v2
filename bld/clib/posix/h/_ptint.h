@@ -2,6 +2,7 @@
 #define _PT_INTERNAL_H_INCLUDED
 
 #include <sys/types.h>
+#include <pthread.h>
 
 /* Thread bookkeeping */
 pthread_t *__register_thread();
