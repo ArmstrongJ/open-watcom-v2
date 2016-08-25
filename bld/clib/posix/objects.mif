@@ -35,6 +35,7 @@
 !inject ptbar.obj                                                                       l32 lpc lmp
 !inject ptcancel.obj                                                                    l32 lpc lmp
 !inject ptclean.obj                                                                     l32 lpc lmp
+!inject ptcncy.obj                                                                      l32 lpc lmp
 !inject ptcond.obj                                                                      l32 lpc lmp
 !inject ptcreate.obj                                                                    l32 lpc lmp
 !inject ptequal.obj                                                                     l32 lpc lmp

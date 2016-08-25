@@ -78,6 +78,10 @@ _WCRTLINK extern int pthread_barrier_init( pthread_barrier_t *__barrier,
 _WCRTLINK extern int pthread_barrier_destroy( pthread_barrier_t *__barrier );
 _WCRTLINK extern int pthread_barrier_wait( pthread_barrier_t *__barrier );
 
+/* Thread concurrency */
+_WCRTLINK extern int pthread_getconcurrency(void);
+_WCRTLINK extern int pthread_setconcurrency(int new_level);
+
 :segment LINUX
 /* Spin locks (Linux only due to use of atomic ops) */
 _WCRTLINK extern int pthread_spin_init(pthread_spinlock_t *__lock, int __ignored_pshared);
