@@ -11,6 +11,9 @@ _WCRTLINK void pthread_exit(void *value_ptr)
 int waiters_local;
 pthread_t *myself;
 
+    /* Call the thread cleanup routines */
+    __call_all_pthread_cleaners( );
+
     myself = __get_current_thread( );
     if(myself == NULL) {
         fprintf(stderr, "ERROR: thread was null during de-register\n");

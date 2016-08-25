@@ -10,17 +10,25 @@
 #include "_ptint.h"
 
 /* Per-thread key lists */
-struct _ptkeys {
+struct __ptkeys {
     pthread_key_t   id;
     void            *value;
-    struct _ptkeys  *next;
+    struct __ptkeys  *next;
+};
+
+/* Per-thread cleanup proc lists */
+struct __ptcleaners {
+    void (*routine)(void*);
+    void                *arg;
+    struct __ptcleaners *next;
 };
 
 /* Thread registry */
 static struct __ptcatalog_struct {
     pid_t     tid;
     pthread_t *pt;
-    struct _ptkeys *keys;
+    struct __ptkeys            *keys;
+    struct __ptcleaners        *cleaners;
     
     struct __ptcatalog_struct *next;
 } *__ptcatalog;
@@ -143,7 +151,7 @@ int __set_pkey_value( pthread_key_t id, void *value )
 {
 pid_t tid;
 struct __ptcatalog_struct *walker;
-struct _ptkeys *keywalker, *keylast, *keynew;
+struct __ptkeys *keywalker, *keylast, *keynew;
 int ret;
 
     walker = NULL;
@@ -171,7 +179,7 @@ int ret;
                 
                 /* We never found a matching key, so add it now */
                 if(keywalker == NULL) {
-                    keynew = (struct _ptkeys *)malloc(sizeof(struct _ptkeys));
+                    keynew = (struct __ptkeys *)malloc(sizeof(struct __ptkeys));
                     if(keynew != NULL) {
                         keynew->id = id;
                         keynew->value = value;
@@ -202,7 +210,7 @@ void *__get_pkey_value( pthread_key_t id )
 {
 pid_t tid;
 struct __ptcatalog_struct *walker;
-struct _ptkeys *keywalker;
+struct __ptkeys *keywalker;
 void *ret;
 
     walker = NULL;
@@ -256,6 +264,124 @@ struct __ptkeylist_struct *walker;
     }
 }
 
+int __call_all_pthread_cleaners( )
+{
+struct __ptcatalog_struct *myself;
+struct __ptcleaners *cleaner_stack;
+struct __ptcleaners *previous;
+
+    cleaner_stack = NULL;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+
+        myself = __ptcatalog;
+        previous = NULL;
+        while(myself != NULL) {
+            if(myself->tid == gettid()) {
+                break;
+            }
+            myself = myself->next;
+        }
+        
+        if(myself == NULL)
+            return( EPERM );
+            
+        /* While we have the lock, detach the list of cleaners */
+        cleaner_stack = myself->cleaners;
+        myself->cleaners = NULL;
+        
+        /* Release the catalog now - no longer accessing it */
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    previous = NULL;
+    while(cleaner_stack != NULL) {
+        cleaner_stack->routine(cleaner_stack->arg);
+        
+        previous = cleaner_stack;
+        cleaner_stack = cleaner_stack->next;
+        free(previous);
+    }
+    
+    return 0;
+}
+
+int __pop_pthread_cleaner( int __execute )
+{
+struct __ptcatalog_struct *myself;
+struct __ptcleaners *popped;
+
+    popped = NULL;
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+
+        myself = __ptcatalog;
+        while(myself != NULL) {
+            if(myself->tid == gettid()) {
+                break;
+            }
+            myself = myself->next;
+        }
+        
+        if(myself == NULL)
+            return( EPERM );
+            
+        popped = myself->cleaners;
+        if(popped != NULL) {
+            myself->cleaners = popped->next;
+            popped->next = NULL;
+        }
+        
+        /* Release the catalog now - no longer accessing it */
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    if(popped != NULL) {
+        if(__execute != 0)
+            popped->routine(popped->arg);
+        free(popped);
+    }
+    
+    return( 0 );
+}
+
+int __push_pthread_cleaner( void (*__routine)(void*), void *__arg )
+{
+struct __ptcatalog_struct *myself;
+struct __ptcleaners *newcleaner;
+
+    if(__routine == NULL)
+        return( EINVAL );
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+
+        myself = __ptcatalog;
+        while(myself != NULL) {
+            if(myself->tid == gettid()) {
+                break;
+            }
+            myself = myself->next;
+        }
+        
+        if(myself == NULL)
+            return( EPERM );
+            
+        newcleaner = (struct __ptcleaners *)malloc(sizeof(struct __ptcleaners));
+        if(newcleaner == NULL)
+            return( ENOMEM );
+            
+        newcleaner->routine = __routine;
+        newcleaner->arg = __arg;
+        newcleaner->next = myself->cleaners;
+        
+        myself->cleaners = newcleaner;
+        
+        /* Release the catalog now - no longer accessing it */
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( 0 );
+}
+
 pthread_t *__register_thread( )
 {
 struct __ptcatalog_struct *newthread;
@@ -293,6 +419,9 @@ struct __ptcatalog_struct *walker;
     /* Only store to the linked list of keys when requested */
     newthread->keys = NULL;
     
+    /* Initialize the list of cleaners */
+    newthread->cleaners = NULL;
+    
     newthread->pt->return_value = NULL;
     /* Thread internal data is now initialized */
 
@@ -326,7 +455,7 @@ struct __ptcatalog_struct *walker;
 static struct __ptcatalog_struct *__remove_thread( pid_t tid )
 {
 struct __ptcatalog_struct *walker, *previous;
-struct _ptkeys *keywalker, *keynext;
+struct __ptkeys *keywalker, *keynext;
 
     walker = NULL;
 

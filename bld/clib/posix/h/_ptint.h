@@ -18,6 +18,11 @@ int __valid_pkey_id( pthread_key_t id );
 int __set_pkey_value( pthread_key_t id, void *value );
 void *__get_pkey_value( pthread_key_t id );
 
+/* Thread-specific cleanup bookkeeping */
+int __push_pthread_cleaner( void (*__routine)(void*), void *__arg );
+int __pop_pthread_cleaner( int __execute );
+int __call_all_pthread_cleaners( );
+
 /* Check if a mutex is owned by the current thread 
  * 0  = yes
  * -1 = no
