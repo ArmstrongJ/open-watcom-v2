@@ -170,3 +170,13 @@ int ret;
     
     return( ret );
 }
+
+_WCRTLINK int pthread_mutex_setprioceiling(pthread_mutex_t *__mutex, int __prioceiling, int *__old_ceiling)
+{
+    return( ENOSYS );
+}
+
+_WCRTLINK int pthread_mutex_getprioceiling(const pthread_mutex_t *__mutex, int *__prioceiling)
+{
+    return( ENOSYS );
+}

@@ -30,14 +30,19 @@ _WCRTLINK extern void pthread_cleanup_push( void (*__routine)(void*), void *__ar
 _WCRTLINK extern void pthread_cleanup_pop( int __execute );
 
 /* Mutexes */
-_WCRTLINK extern int pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr);
-_WCRTLINK extern int pthread_mutex_destroy(pthread_mutex_t *__mutex);
-_WCRTLINK extern int pthread_mutex_trylock(pthread_mutex_t *__mutex);
-_WCRTLINK extern int pthread_mutex_lock(pthread_mutex_t *__mutex);
-_WCRTLINK extern int pthread_mutex_unlock(pthread_mutex_t *__mutex);
+_WCRTLINK extern int pthread_mutex_init( pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr );
+_WCRTLINK extern int pthread_mutex_destroy( pthread_mutex_t *__mutex );
+_WCRTLINK extern int pthread_mutex_trylock( pthread_mutex_t *__mutex );
+_WCRTLINK extern int pthread_mutex_lock( pthread_mutex_t *__mutex );
+_WCRTLINK extern int pthread_mutex_unlock( pthread_mutex_t *__mutex );
+_WCRTLINK extern int pthread_mutex_setprioceiling( pthread_mutex_t *__mutex, int __prioceiling, int *__old_ceiling );
+_WCRTLINK extern int pthread_mutex_getprioceiling( const pthread_mutex_t *__mutex, int *__prioceiling );
 
 /* Thread joining */
 _WCRTLINK extern int pthread_join( pthread_t __thread, void **__value_ptr );
+
+/* Thread detach */
+_WCRTLINK extern int pthread_detach( pthread_t __thread );
 
 /* Cancellation */
 _WCRTLINK extern int pthread_cancel( pthread_t __thread );
@@ -82,13 +87,17 @@ _WCRTLINK extern int pthread_barrier_wait( pthread_barrier_t *__barrier );
 _WCRTLINK extern int pthread_getconcurrency(void);
 _WCRTLINK extern int pthread_setconcurrency(int new_level);
 
+/* Scheduling */
+_WCRTLINK extern int pthread_getschedparam( pthread_t __thr, int *__policy, struct sched_param *__param );
+_WCRTLINK extern int pthread_setschedparam( pthread_t __thr, int __policy, const struct sched_param *__param );
+
 :segment LINUX
 /* Spin locks (Linux only due to use of atomic ops) */
-_WCRTLINK extern int pthread_spin_init(pthread_spinlock_t *__lock, int __ignored_pshared);
-_WCRTLINK extern int pthread_spin_destroy(pthread_spinlock_t *__lock);
-_WCRTLINK extern int pthread_spin_lock(pthread_spinlock_t *__lock);
-_WCRTLINK extern int pthread_spin_trylock(pthread_spinlock_t *__lock);
-_WCRTLINK extern int pthread_spin_unlock(pthread_spinlock_t *__lock);
+_WCRTLINK extern int pthread_spin_init( pthread_spinlock_t *__lock, int __ignored_pshared );
+_WCRTLINK extern int pthread_spin_destroy( pthread_spinlock_t *__lock );
+_WCRTLINK extern int pthread_spin_lock( pthread_spinlock_t *__lock );
+_WCRTLINK extern int pthread_spin_trylock( pthread_spinlock_t *__lock );
+_WCRTLINK extern int pthread_spin_unlock( pthread_spinlock_t *__lock );
 :endsegment
 
 :include poppack.sp

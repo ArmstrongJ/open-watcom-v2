@@ -38,6 +38,7 @@
 !inject ptcncy.obj                                                                      l32 lpc lmp
 !inject ptcond.obj                                                                      l32 lpc lmp
 !inject ptcreate.obj                                                                    l32 lpc lmp
+!inject ptdetach.obj                                                                    l32 lpc lmp
 !inject ptequal.obj                                                                     l32 lpc lmp
 !inject ptexit.obj                                                                      l32 lpc lmp
 !inject _ptint.obj                                                                      l32 lpc lmp
@@ -45,6 +46,7 @@
 !inject ptkey.obj                                                                       l32 lpc lmp
 !inject ptmutex.obj                                                                     l32 lpc lmp
 !inject ptrwlock.obj                                                                    l32 lpc lmp
+!inject ptsched.obj                                                                     l32 lpc lmp
 !inject readdir.obj                                                                     l32 lpc lmp
 !inject recv.obj                                                                        l32 lpc lmp
 !inject recvfrom.obj                                                                    l32 lpc lmp
