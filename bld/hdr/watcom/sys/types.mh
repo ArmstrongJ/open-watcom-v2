@@ -177,6 +177,7 @@ typedef struct {
     int              waiters;
 } pthread_cond_t;
 
+/* Dummy type - nothing supported */
 typedef void* pthread_condattr_t;
 
 typedef struct {
@@ -184,6 +185,7 @@ typedef struct {
     int read_waiters;
 } pthread_rwlock_t;
 
+/* Dummy type - nothing supported */
 typedef void* pthread_rwlockattr_t;
 
 typedef struct {
