@@ -153,9 +153,12 @@ typedef struct {
     int          status;
     pid_t        owner;
     int          id;
+    int          type;
 } pthread_mutex_t;
 
-typedef void* pthread_mutexattr_t;
+typedef struct {
+    int type;
+} pthread_mutexattr_t;
 
 typedef int pthread_key_t;
 

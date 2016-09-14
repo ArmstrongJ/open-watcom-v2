@@ -27,6 +27,18 @@
 #define PTHREAD_SCOPE_PROCESS       0
 #define PTHREAD_SCOPE_SYSTEM        1
 
+#define PTHREAD_PRIO_NONE           0
+#define PTHREAD_PRIO_INHERIT        1
+#define PTHREAD_PRIO_PROTECT        2
+
+#define PTHREAD_PROCESS_PRIVATE     0
+#define PTHREAD_PROCESS_SHARED      1
+
+#define PTHREAD_MUTEX_NORMAL        0
+#define PTHREAD_MUTEX_ERRORCHECK    1
+#define PTHREAD_MUTEX_RECURSIVE     2
+#define PTHREAD_MUTEX_DEFAULT       1
+
 /* Creation/destruction */
 _WCRTLINK extern int  pthread_create( pthread_t *__thread, const pthread_attr_t *__attr, void *(*__start_routine)(void*), void *__arg );
 _WCRTLINK extern void pthread_exit( void *__exit_val );
@@ -125,6 +137,18 @@ _WCRTLINK extern int pthread_attr_setstackaddr( pthread_attr_t *__attr, void *__
 _WCRTLINK extern int pthread_attr_getstackaddr( const pthread_attr_t *__attr, void **__stackaddr );
 _WCRTLINK extern int pthread_attr_setstacksize( pthread_attr_t *attr, size_t __stacksize );
 _WCRTLINK extern int pthread_attr_getstacksize( const pthread_attr_t *attr, size_t *__stacksize );
+
+/* Mutex attributes */
+_WCRTLINK extern int pthread_mutexattr_init( pthread_mutexattr_t *__attr );
+_WCRTLINK extern int pthread_mutexattr_destroy( pthread_mutexattr_t *__attr );
+_WCRTLINK extern int pthread_mutexattr_setprioceiling( pthread_mutexattr_t *__attr, int __prioceiling );
+_WCRTLINK extern int pthread_mutexattr_getprioceiling( const pthread_mutexattr_t *__attr, int *__prioceiling );
+_WCRTLINK extern int pthread_mutexattr_setprotocol( pthread_mutexattr_t *__attr, int __protocol );
+_WCRTLINK extern int pthread_mutexattr_getprotocol( const pthread_mutexattr_t *__attr, int *__protocol );
+_WCRTLINK extern int pthread_mutexattr_getpshared( const pthread_mutexattr_t *__attr, int *__pshared );
+_WCRTLINK extern int pthread_mutexattr_setpshared( pthread_mutexattr_t *__attr, int __pshared );
+_WCRTLINK extern int pthread_mutexattr_gettype( const pthread_mutexattr_t *__attr, int *__type );
+_WCRTLINK extern int pthread_mutexattr_settype( pthread_mutexattr_t *__attr, int __type );
 
 :include poppack.sp
 

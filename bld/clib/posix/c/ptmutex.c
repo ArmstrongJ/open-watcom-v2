@@ -39,7 +39,7 @@
 #include <semaphore.h>
 #include <sys/types.h>
 #include <errno.h>
-
+#include <pthread.h>
 #include <stdio.h>
 
 static volatile int id_count = 0;
@@ -62,6 +62,10 @@ int res;
     __mutex->status = MUTEX_STATUS_READY;
     __mutex->id = id_count++;
     __mutex->owner = (pid_t)-1;
+    __mutex->type = PTHREAD_MUTEX_DEFAULT;
+    
+    if(__attr != NULL)
+        __mutex->type = __attr->type;
     
     return( 0 );   
 }
@@ -90,6 +94,32 @@ int res;
     return( 0 );
 }
 
+#define LOCK_PROCEED        0
+#define LOCK_ERROR_OWNED    1
+
+static int __pthread_check_lock_type(pthread_mutex_t *__mutex)
+{
+int ret;
+
+    ret = LOCK_PROCEED;
+
+    sem_wait(&__mutex->access);
+    if(__mutex->status == MUTEX_STATUS_READY)
+        ret = LOCK_PROCEED;
+    else if(__mutex->status == MUTEX_STATUS_LOCKED && __mutex->owner == gettid()) {
+    
+        /* For a "normal" mutex, proceed with deadlock... */
+        if(__mutex->type == PTHREAD_MUTEX_NORMAL)
+            ret = LOCK_PROCEED;
+        
+        else if(__mutex->type == PTHREAD_MUTEX_ERRORCHECK)
+            ret = LOCK_ERROR_OWNED;
+    }    
+    sem_post(&__mutex->access);
+    
+    return( ret );
+}
+
 _WCRTLINK int pthread_mutex_trylock(pthread_mutex_t *__mutex)
 {
 int ret;
@@ -100,7 +130,7 @@ int ret;
         __mutex->status = MUTEX_STATUS_LOCKED;
         __mutex->owner = gettid();
         ret = 0;
-    } else
+    } else 
         ret = EBUSY;
     
     sem_post(&__mutex->access);
@@ -110,8 +140,13 @@ int ret;
 _WCRTLINK int pthread_mutex_lock(pthread_mutex_t *__mutex)
 {
 int ret;
+int res;
     
     ret = -1;
+    
+    res = __pthread_check_lock_type(__mutex);
+    if(res == LOCK_ERROR_OWNED)
+        return( EDEADLK );
     
     if(sem_wait(&__mutex->mutex) == 0) {
         sem_wait(&__mutex->access);
@@ -139,7 +174,9 @@ int ret;
             __mutex->status = MUTEX_STATUS_READY;
             __mutex->owner = (pid_t)-1;
             sem_post(&__mutex->mutex);
-        } else if(__mutex->status == MUTEX_STATUS_DESTROYED)
+        } else if(__mutex->status == MUTEX_STATUS_LOCKED)
+            ret = EPERM;
+        else if(__mutex->status == MUTEX_STATUS_DESTROYED)
             ret = EINVAL;
         else
             ret = EBUSY;
