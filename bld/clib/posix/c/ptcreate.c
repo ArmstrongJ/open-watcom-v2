@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include "rterrno.h"
 #include "_ptint.h"
+#include <sched.h>
 
 #include <string.h>
 
@@ -102,6 +103,15 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
     
     /* Wait for registration */
     sem_wait(&passed->registered);
+    
+    /* Apply a few more attributes if necessary */
+    if(attr != NULL) {
+        if(attr->sched_inherit == 0)
+            sched_setscheduler(passed->thread->id, attr->sched_policy, attr->sched_params);
+        
+        if(attr->detached == PTHREAD_CREATE_DETACHED)
+            pthread_detach(*(passed->thread));
+    }
     
     if(ret >= 0) {
         /* If the user provided a thread pointer, copy... */
