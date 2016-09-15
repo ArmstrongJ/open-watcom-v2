@@ -42,8 +42,6 @@
 #include <pthread.h>
 #include <stdio.h>
 
-static volatile int id_count = 0;
-
 _WCRTLINK int pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr)
 {
 int res;
@@ -60,7 +58,6 @@ int res;
     }
     
     __mutex->status = MUTEX_STATUS_READY;
-    __mutex->id = id_count++;
     __mutex->owner = (pid_t)-1;
     __mutex->type = PTHREAD_MUTEX_DEFAULT;
     

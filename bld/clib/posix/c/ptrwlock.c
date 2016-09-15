@@ -47,12 +47,8 @@ int res;
 
     if(__rwlock == NULL) 
         return( EINVAL );
-    
-    __rwlock->block_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-    if( __rwlock->block_mutex == NULL )
-        return( ENOMEM );
-    
-    res = pthread_mutex_init(__rwlock->block_mutex, NULL);
+
+    res = pthread_mutex_init(&__rwlock->block_mutex, NULL);
     if(res != 0)
         return( res );
         
@@ -74,12 +70,8 @@ int res;
     
     pthread_rwlock_unlock(__rwlock);
     
-    res = pthread_mutex_destroy(__rwlock->block_mutex);
-    if(res == 0) {
-        free(__rwlock->block_mutex);
-        __rwlock->block_mutex = NULL;
-    }
-       
+    res = pthread_mutex_destroy(&__rwlock->block_mutex);
+
     return( res );
 }
 
@@ -89,12 +81,12 @@ _WCRTLINK int pthread_rwlock_unlock(pthread_rwlock_t *__rwlock)
         return( EINVAL );
     
     /* If this thread is locking the lock's mutex, it is a write lock */
-    if(__pthread_mutex_mylock(__rwlock->block_mutex) == 0) {
-        pthread_mutex_unlock(__rwlock->block_mutex);
+    if(__pthread_mutex_mylock(&__rwlock->block_mutex) == 0) {
+        pthread_mutex_unlock(&__rwlock->block_mutex);
     
     /* Otherwise, a read lock */
     } else {
-        pthread_mutex_lock(__rwlock->block_mutex);
+        pthread_mutex_lock(&__rwlock->block_mutex);
         
         /* Note that we're just decrementing.  This implementation
          * will not ever return a EPERM error on unlock attempts.
@@ -105,7 +97,7 @@ _WCRTLINK int pthread_rwlock_unlock(pthread_rwlock_t *__rwlock)
         if(__rwlock->read_waiters < 0)
             __rwlock->read_waiters = 0; 
         
-        pthread_mutex_unlock(__rwlock->block_mutex);
+        pthread_mutex_unlock(&__rwlock->block_mutex);
     }
     
     return( 0 );
@@ -116,9 +108,9 @@ _WCRTLINK int pthread_rwlock_tryrdlock(pthread_rwlock_t *__rwlock)
     if(__rwlock == NULL)
         return( EINVAL );
         
-    if(pthread_mutex_trylock(__rwlock->block_mutex) == 0) {
+    if(pthread_mutex_trylock(&__rwlock->block_mutex) == 0) {
         __rwlock->read_waiters++;
-        pthread_mutex_unlock(__rwlock->block_mutex);
+        pthread_mutex_unlock(&__rwlock->block_mutex);
         return( 0 );
     } 
     
@@ -132,10 +124,10 @@ int res;
     if(__rwlock == NULL)
         return( EINVAL );
     
-    res = pthread_mutex_lock(__rwlock->block_mutex);
+    res = pthread_mutex_lock(&__rwlock->block_mutex);
     if(res == 0) {
         __rwlock->read_waiters++;
-        pthread_mutex_unlock(__rwlock->block_mutex);
+        pthread_mutex_unlock(&__rwlock->block_mutex);
         return 0;
     } 
     
@@ -149,10 +141,10 @@ int res;
     if(__rwlock == NULL)
         return( EINVAL );
     
-    res = pthread_mutex_trylock(__rwlock->block_mutex);
+    res = pthread_mutex_trylock(&__rwlock->block_mutex);
     if(res == 0) {
         if(__rwlock->read_waiters > 0) {
-            pthread_mutex_unlock(__rwlock->block_mutex);
+            pthread_mutex_unlock(&__rwlock->block_mutex);
             return( EBUSY);
         }
         
@@ -171,9 +163,9 @@ struct timespec sleeper;
         return( EINVAL );
     
     do {
-        res = pthread_mutex_lock(__rwlock->block_mutex);
+        res = pthread_mutex_lock(&__rwlock->block_mutex);
         if(__rwlock->read_waiters > 0) {
-            pthread_mutex_unlock(__rwlock->block_mutex);
+            pthread_mutex_unlock(&__rwlock->block_mutex);
             
             /* Sleep for a bit */
             sleeper.tv_sec = 0;

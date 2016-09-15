@@ -43,17 +43,13 @@ _WCRTLINK int pthread_cond_init(pthread_cond_t *__cond, const pthread_condattr_t
     if( __cond == NULL )
         return( EINVAL );
     
-    __cond->waiting_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-    if( __cond->waiting_mutex == NULL )
-        return( ENOMEM );
-    
-    pthread_mutex_init( __cond->waiting_mutex, NULL );
+    pthread_mutex_init( &__cond->waiting_mutex, NULL );
     
     sem_init( &__cond->wait_block, 0, 1 );
     
-    pthread_mutex_lock( __cond->waiting_mutex );
+    pthread_mutex_lock( &__cond->waiting_mutex );
     __cond->waiters = 0;
-    pthread_mutex_unlock( __cond->waiting_mutex );
+    pthread_mutex_unlock( &__cond->waiting_mutex );
 
     return( 0 );   
 }
@@ -63,13 +59,13 @@ _WCRTLINK int pthread_cond_destroy(pthread_cond_t *__cond)
     if( __cond == NULL )
         return( EINVAL );
     
-    pthread_mutex_lock( __cond->waiting_mutex );
+    pthread_mutex_lock( &__cond->waiting_mutex );
     __cond->waiters = 0;
-    pthread_mutex_unlock( __cond->waiting_mutex );
+    pthread_mutex_unlock( &__cond->waiting_mutex );
     
     sem_destroy( &__cond->wait_block );
     
-    pthread_mutex_destroy( __cond->waiting_mutex );
+    pthread_mutex_destroy( &__cond->waiting_mutex );
     
     return( 0 );   
 }
@@ -80,26 +76,26 @@ _WCRTLINK int pthread_cond_timedwait(pthread_cond_t *__cond,
 {
 int res;
 
-    pthread_mutex_lock( __cond->waiting_mutex );
+    pthread_mutex_lock( &__cond->waiting_mutex );
     
     /* If we're the first waiter, increment the semaphore now */
     if(__cond->waiters == 0)
         sem_wait(&__cond->wait_block);
     __cond->waiters++;
     
-    pthread_mutex_unlock( __cond->waiting_mutex );
+    pthread_mutex_unlock( &__cond->waiting_mutex );
 
     pthread_mutex_unlock(__mutex);
     res = sem_timedwait( &__cond->wait_block, abstime );
 
-    pthread_mutex_lock( __cond->waiting_mutex );
+    pthread_mutex_lock( &__cond->waiting_mutex );
     __cond->waiters--;
     
     /* If we're the last waiter, release the semaphore */
     if(__cond->waiters == 0)
         sem_post(&__cond->wait_block);
         
-    pthread_mutex_unlock( __cond->waiting_mutex );
+    pthread_mutex_unlock( &__cond->waiting_mutex );
 
     if(res == 0)
         pthread_mutex_lock(__mutex);
@@ -112,26 +108,26 @@ _WCRTLINK int pthread_cond_wait(pthread_cond_t *__cond,
 {
 int res;
 
-    pthread_mutex_lock( __cond->waiting_mutex );
+    pthread_mutex_lock( &__cond->waiting_mutex );
     
     /* If we're the first waiter, increment the semaphore now */
     if(__cond->waiters == 0)
         sem_wait(&__cond->wait_block);
     __cond->waiters++;
     
-    pthread_mutex_unlock( __cond->waiting_mutex );
+    pthread_mutex_unlock( &__cond->waiting_mutex );
 
     pthread_mutex_unlock(__mutex);
     res = sem_wait( &__cond->wait_block );
     
-    pthread_mutex_lock( __cond->waiting_mutex );
+    pthread_mutex_lock( &__cond->waiting_mutex );
     __cond->waiters--;
     
     /* If we're the last waiter, release the semaphore */
     if(__cond->waiters == 0)
         sem_post(&__cond->wait_block);
         
-    pthread_mutex_unlock( __cond->waiting_mutex );
+    pthread_mutex_unlock( &__cond->waiting_mutex );
     
     if(res == 0)
         pthread_mutex_lock(__mutex);
@@ -149,9 +145,9 @@ _WCRTLINK int pthread_cond_broadcast(pthread_cond_t *__cond)
 int waiters;
 
     do {
-        pthread_mutex_lock( __cond->waiting_mutex );
+        pthread_mutex_lock( &__cond->waiting_mutex );
         waiters = __cond->waiters;
-        pthread_mutex_unlock( __cond->waiting_mutex );
+        pthread_mutex_unlock( &__cond->waiting_mutex );
         
         sem_post( &__cond->wait_block );
     } while(waiters > 0);
