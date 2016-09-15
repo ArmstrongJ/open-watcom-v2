@@ -162,6 +162,9 @@ _WCRTLINK extern int pthread_rwlockattr_destroy( pthread_rwlockattr_t *__attr );
 _WCRTLINK extern int pthread_rwlockattr_getpshared( const pthread_rwlockattr_t *__attr, int *__pshared );
 _WCRTLINK extern int pthread_rwlockattr_setpshared( pthread_rwlockattr_t *__attr, int __pshared );
 
+/* Execute-once routine */
+_WCRTLINK extern int pthread_once( pthread_once_t *__once_control, void (*__init_routine)(void) );
+
 /* Initializers */
 /* NOTE: These utilize internal values and must be synced with
  *       the definitions in sys/types.h
@@ -169,6 +172,7 @@ _WCRTLINK extern int pthread_rwlockattr_setpshared( pthread_rwlockattr_t *__attr
 #define PTHREAD_MUTEX_INITIALIZER   { { 1 }, { 1 }, 100, (pid_t)(-1), PTHREAD_MUTEX_DEFAULT }
 #define PTHREAD_COND_INITIALIZER    { { 1 }, PTHREAD_MUTEX_INITIALIZER, 0 }
 #define PTHREAD_RWLOCK_INITIALIZER  { PTHREAD_MUTEX_INITIALIZER, 0 }
+#define PTHREAD_ONCE_INIT           { PTHREAD_MUTEX_INITIALIZER, 0 }
 
 :include poppack.sp
 

@@ -41,11 +41,10 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <process.h>
 
 _WCRTLINK int pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr)
 {
-int res;
-
     if(__mutex->status == MUTEX_STATUS_READY || __mutex->status == MUTEX_STATUS_LOCKED)
         return( EINVAL );
 

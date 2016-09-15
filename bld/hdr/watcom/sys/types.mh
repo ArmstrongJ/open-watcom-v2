@@ -209,6 +209,11 @@ typedef struct {
 
 typedef void* pthread_barrierattr_t;
 
+typedef struct {
+    pthread_mutex_t access;
+    int             executed;
+} pthread_once_t;
+
 :endsegment
 
 :include cplusepi.sp
