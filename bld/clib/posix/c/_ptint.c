@@ -25,12 +25,20 @@ struct __ptcleaners {
 
 /* Thread registry */
 static struct __ptcatalog_struct {
-    pid_t     tid;
-    pthread_t *pt;
+    pid_t                       tid;
+    pthread_t                   pt;
+ 
+    pthread_mutex_t            *running_mutex;
+    pthread_mutex_t            *waiting_mutex;
+
+    int                         waiters;
+    void                       *return_value;
+    int                         cancel_status;
+
     struct __ptkeys            *keys;
     struct __ptcleaners        *cleaners;
     
-    struct __ptcatalog_struct *next;
+    struct __ptcatalog_struct  *next;
 } *__ptcatalog;
 
 static pthread_mutex_t *__ptcatalog_mutex;
@@ -45,12 +53,12 @@ static struct __ptkeylist_struct {
 static long keyid_count;
 static pthread_mutex_t *__ptkeylist_mutex;
 
-pthread_t *__get_thread( pid_t tid )
+pthread_t __get_thread( pid_t tid )
 {
-pthread_t *ret;
+pthread_t ret;
 struct __ptcatalog_struct *walker;
 
-    ret = NULL;
+    ret = 0;
 
     walker = __ptcatalog;
     while(walker != NULL) {
@@ -382,7 +390,7 @@ struct __ptcleaners *newcleaner;
     return( 0 );
 }
 
-pthread_t *__register_thread( )
+pthread_t __register_thread( )
 {
 struct __ptcatalog_struct *newthread;
 struct __ptcatalog_struct *walker;
@@ -390,31 +398,25 @@ struct __ptcatalog_struct *walker;
     newthread = (struct __ptcatalog_struct *)malloc(sizeof(struct __ptcatalog_struct));
     if( newthread == NULL ) {
         _RWD_errno = ENOMEM;
-        return NULL;
+        return( (pthread_t)-1 );
     }
     
     newthread->tid = gettid();
-    newthread->pt = (pthread_t *)malloc(sizeof(pthread_t));
-    if( newthread->pt == NULL ) {
-        free(newthread);
-        _RWD_errno = ENOMEM;
-        return NULL;
-    }
     
     /* Initialize some aspects of our pthread object */
-    newthread->pt->id = newthread->tid;
+    newthread->pt = newthread->tid;
     
-    newthread->pt->running_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-    if(newthread->pt->running_mutex != NULL)
-         pthread_mutex_init(newthread->pt->running_mutex, NULL);
+    newthread->running_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+    if(newthread->running_mutex != NULL)
+         pthread_mutex_init(newthread->running_mutex, NULL);
 
-    newthread->pt->waiting_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-    if(newthread->pt->waiting_mutex != NULL)
-         pthread_mutex_init(newthread->pt->waiting_mutex, NULL);
+    newthread->waiting_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+    if(newthread->waiting_mutex != NULL)
+         pthread_mutex_init(newthread->waiting_mutex, NULL);
     
-    newthread->pt->waiters = 0;
+    newthread->waiters = 0;
     
-    newthread->pt->cancel_status = PTHREAD_CANCEL_ENABLE + PTHREAD_CANCEL_DEFERRED;
+    newthread->cancel_status = PTHREAD_CANCEL_ENABLE + PTHREAD_CANCEL_DEFERRED;
     
     /* Only store to the linked list of keys when requested */
     newthread->keys = NULL;
@@ -422,7 +424,7 @@ struct __ptcatalog_struct *walker;
     /* Initialize the list of cleaners */
     newthread->cleaners = NULL;
     
-    newthread->pt->return_value = NULL;
+    newthread->return_value = NULL;
     /* Thread internal data is now initialized */
 
 
@@ -446,7 +448,7 @@ struct __ptcatalog_struct *walker;
         pthread_mutex_unlock(__ptcatalog_mutex);
     } else {
         _RWD_errno = EBUSY;
-        return NULL;
+        return( (pthread_t)-1 );
     }
     
     return( newthread->pt );
@@ -504,10 +506,202 @@ struct __ptkeys *keywalker, *keynext;
     return __ptcatalog;
 }
 
-void __unregister_thread( pthread_t *thread )
+/* NOTE: Catalog must be locked first! */
+static struct __ptcatalog_struct *__get_thread_catalog_entry( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+    
+    walker = __ptcatalog;
+    while(walker != NULL) {
+        if(pthread_equal(walker->pt, thread) == 1)
+            break;
+        
+        walker = walker->next;
+    }
+    
+    return walker;
+}
+
+
+void __set_thread_return_value( pthread_t thread, void *value )
+{
+struct __ptcatalog_struct *walker;
+
+    walker = NULL;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL)
+            walker->return_value = value;
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+}
+
+void *__get_thread_return_value( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+void *ret;
+
+    ret = NULL;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL)
+            ret = walker->return_value;
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+pthread_mutex_t *__get_thread_waiting_mutex( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+pthread_mutex_t *ret;
+
+    ret = NULL;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL)
+            ret = walker->waiting_mutex;
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+pthread_mutex_t *__get_thread_running_mutex( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+pthread_mutex_t *ret;
+
+    ret = NULL;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL)
+            ret = walker->running_mutex;
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+int __increment_thread_waiters( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+int ret;
+
+    ret = 0;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL) {
+            walker->waiters++;
+            ret = walker->waiters;
+        }
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+int __decrement_thread_waiters( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+int ret;
+
+    ret = 0;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL) {
+            walker->waiters--;
+            ret = walker->waiters;
+        }
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+int __get_thread_waiters_count( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+int ret;
+
+    ret = 0;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL) {
+            ret = walker->waiters;
+        }
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+pid_t __get_thread_id( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+pid_t ret;
+
+    ret = 0;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL) {
+            ret = walker->tid;
+        }
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+int __set_thread_cancel_status( pthread_t thread, int status )
+{
+struct __ptcatalog_struct *walker;
+int ret;
+
+    ret = 0;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL) {
+            walker->cancel_status = status;
+            ret = status;
+        }
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+int __get_thread_cancel_status( pthread_t thread )
+{
+struct __ptcatalog_struct *walker;
+int ret;
+
+    ret = 0;
+
+    if(pthread_mutex_lock(__ptcatalog_mutex) == 0) {
+        walker = __get_thread_catalog_entry(thread);
+        if(walker != NULL)
+            ret = walker->cancel_status;
+        pthread_mutex_unlock(__ptcatalog_mutex);
+    }
+    
+    return( ret );
+}
+
+void __unregister_thread( pthread_t thread )
 {
     if(thread != NULL) {
-        __ptcatalog = __remove_thread(thread->id);
+        __ptcatalog = __remove_thread(thread);
     }
 }
 
@@ -516,7 +710,7 @@ void __unregister_current_thread( )
     __unregister_thread( __get_current_thread() );
 }
 
-pthread_t *__get_current_thread( )
+pthread_t __get_current_thread( )
 {
 #ifdef __LINUX__
     return( __get_thread(gettid()) );

@@ -17,7 +17,7 @@
 struct __thread_pass {
     void      *(*start_routine)(void*); 
     void      *arg;
-    pthread_t *thread;
+    pthread_t  thread;
     sem_t      registered;
 };
 
@@ -30,7 +30,7 @@ void *(*start_routine)(void*);
 void *arg;
 
     passed = (struct __thread_pass *)data;
-
+    
     passed->thread = __register_thread();
 
     sem_post(&passed->registered);
@@ -39,7 +39,7 @@ void *arg;
     arg = passed->arg;
     
     /* Lock our running mutex to allow for future joins */
-    pthread_mutex_lock(passed->thread->running_mutex);
+    pthread_mutex_lock(__get_thread_running_mutex(passed->thread));
     
     /* Call the user routine */
     ret = start_routine(arg);
@@ -82,7 +82,7 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
     
     passed->start_routine = start_routine;
     passed->arg = arg;
-    passed->thread = NULL;
+    passed->thread = (pthread_t)-1;
     
     if(stack == NULL && stack_size > 0) {
         stack = (char *)malloc(stack_size*sizeof(char *));
@@ -106,18 +106,15 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
     
     /* Apply a few more attributes if necessary */
     if(attr != NULL) {
-        if(attr->sched_inherit == 0)
-            sched_setscheduler(passed->thread->id, attr->sched_policy, attr->sched_params);
+        if(attr->sched_inherit == PTHREAD_EXPLICIT_SCHED)
+            sched_setscheduler(__get_thread_id(passed->thread), attr->sched_policy, attr->sched_params);
         
         if(attr->detached == PTHREAD_CREATE_DETACHED)
-            pthread_detach(*(passed->thread));
+            pthread_detach(passed->thread);
     }
     
     if(ret >= 0) {
-        /* If the user provided a thread pointer, copy... */
-        if(thread != NULL)
-            memcpy(thread, passed->thread, sizeof(pthread_t));
-        
+        *thread = passed->thread;
         ret = 0;
     }
     

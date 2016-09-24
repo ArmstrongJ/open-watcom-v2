@@ -161,14 +161,7 @@ typedef struct {
 
 typedef int pthread_key_t;
 
-typedef struct {
-    pid_t            id;
-    pthread_mutex_t *running_mutex;
-    pthread_mutex_t *waiting_mutex;
-    int              waiters;
-    void            *return_value;
-    int              cancel_status;
-} pthread_t;
+typedef pid_t pthread_t;
 
 typedef struct {
     sem_t            wait_block;

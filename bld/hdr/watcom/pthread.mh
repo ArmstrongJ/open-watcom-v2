@@ -14,6 +14,9 @@
 
 :include systypes.sp
 
+#include <time.h>
+#include <sched.h>
+
 :include lnxkpack.sp
 
 #define PTHREAD_CANCEL_DISABLE      0
@@ -39,6 +42,11 @@
 #define PTHREAD_MUTEX_RECURSIVE     2
 #define PTHREAD_MUTEX_DEFAULT       1
 
+#define PTHREAD_EXPLICIT_SCHED      0
+#define PTHREAD_INHERIT_SCHED       1
+
+#define PTHREAD_CANCELED            ((void *)1)
+
 /* Creation/destruction */
 _WCRTLINK extern int  pthread_create( pthread_t *__thread, const pthread_attr_t *__attr, void *(*__start_routine)(void*), void *__arg );
 _WCRTLINK extern void pthread_exit( void *__exit_val );
@@ -61,6 +69,9 @@ _WCRTLINK extern int pthread_join( pthread_t __thread, void **__value_ptr );
 
 /* Thread detach */
 _WCRTLINK extern int pthread_detach( pthread_t __thread );
+
+/* Self */
+_WCRTLINK extern pthread_t pthread_self( );
 
 /* Cancellation */
 _WCRTLINK extern int pthread_cancel( pthread_t __thread );

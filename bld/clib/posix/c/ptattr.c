@@ -80,7 +80,7 @@ _WCRTLINK int pthread_attr_setguardsize(pthread_attr_t *__attr, size_t guardsize
 
 _WCRTLINK int pthread_attr_setinheritsched(pthread_attr_t *__attr, int inheritsched)
 {
-    if( __attr == NULL || (inheritsched != 0 && inheritsched != 1))
+    if( __attr == NULL || (inheritsched != PTHREAD_EXPLICIT_SCHED && inheritsched != PTHREAD_INHERIT_SCHED))
         return( EINVAL );
 
     __attr->sched_inherit = inheritsched;

@@ -15,15 +15,15 @@
 #define PTHREAD_CANCEL_SET  128
 
 /* Cancellation status */
-#define CANCEL_ENABLED(t)   ((t->cancel_status & PTHREAD_CANCEL_ENABLE) == PTHREAD_CANCEL_ENABLE)
-#define CANCEL_DEFERED(t)   ((t->cancel_status & PTHREAD_CANCEL_DEFERRED) == PTHREAD_CANCEL_DEFERRED)
-#define CANCEL_REQUESTED(t) ((t->cancel_status & PTHREAD_CANCEL_SET) == PTHREAD_CANCEL_SET)
+#define CANCEL_ENABLED(s)   ((s & PTHREAD_CANCEL_ENABLE) == PTHREAD_CANCEL_ENABLE)
+#define CANCEL_DEFERED(s)   ((s & PTHREAD_CANCEL_DEFERRED) == PTHREAD_CANCEL_DEFERRED)
+#define CANCEL_REQUESTED(s) ((s & PTHREAD_CANCEL_SET) == PTHREAD_CANCEL_SET)
 
 typedef void (*sighandler_t)(int);
 
 static void __thread_handle_cancellation(int signal)
 {
-    pthread_exit(NULL);
+    pthread_exit(PTHREAD_CANCELED);
 }
 
 int __thread_enable_cancellation(int enable)
@@ -40,22 +40,22 @@ sighandler_t res;
 
 _WCRTLINK int pthread_cancel( pthread_t __thread )
 {
-pthread_t *internal;
+pid_t internal;
+int cancel_status;
 int ret;
 
-    /* Return the internal representation of the thread
-     * to ensure accurate status flags
-     */
-    internal = __get_thread(__thread.id);
+    cancel_status = __get_thread_cancel_status(__thread);
     
-    if(!CANCEL_ENABLED(internal))
+    if(!CANCEL_ENABLED(cancel_status))
         return( EPERM );
     
-    if(CANCEL_DEFERED(internal))
-        internal->cancel_status |= PTHREAD_CANCEL_SET;
-    else {
+    if(CANCEL_DEFERED(cancel_status)) {
+        cancel_status |= PTHREAD_CANCEL_SET;
+        __set_thread_cancel_status(__thread, cancel_status);
+    } else {
 #ifdef __UNIX__
-        ret = kill(__thread.id, SIGCANCEL);
+        internal = __get_thread_id(__thread);
+        ret = kill(internal, SIGCANCEL);
         if(ret != 0)
             ret = errno;
     
@@ -69,10 +69,9 @@ int ret;
 
 _WCRTLINK int pthread_setcancelstate(int __state, int *__oldstate)
 {
-pthread_t *internal;
+pthread_t internal;
+int cancel_status;
 int res;
-
-    internal = __get_current_thread();
 
     if(__state != PTHREAD_CANCEL_ENABLE ||
        __state != PTHREAD_CANCEL_DISABLE)
@@ -80,12 +79,17 @@ int res;
         return( EINVAL );
     }
 
-    res = internal->cancel_status & PTHREAD_CANCEL_ENABLE;
+    internal = __get_current_thread();
+    cancel_status = __get_thread_cancel_status(internal);
+
+    res = cancel_status & PTHREAD_CANCEL_ENABLE;
     if(res != __state) {
         if(res == PTHREAD_CANCEL_ENABLE)
-            internal->cancel_status -= PTHREAD_CANCEL_ENABLE;
+            cancel_status -= PTHREAD_CANCEL_ENABLE;
         else
-            internal->cancel_status += PTHREAD_CANCEL_ENABLE;
+            cancel_status += PTHREAD_CANCEL_ENABLE;
+
+        __set_thread_cancel_status(internal, cancel_status);
     }
     
     if(__oldstate != NULL)
@@ -96,7 +100,8 @@ int res;
 
 _WCRTLINK int pthread_setcanceltype(int __type, int *__oldtype)
 {
-pthread_t *internal;
+pthread_t internal;
+int cancel_status;
 int res;
 
     internal = __get_current_thread();
@@ -106,19 +111,21 @@ int res;
     {
         return( EINVAL );
     }
-
-    res = CANCEL_DEFERED(internal) ? PTHREAD_CANCEL_DEFERRED : PTHREAD_CANCEL_ASYNCHRONOUS;
+    
+    cancel_status = __get_thread_cancel_status(internal);
+    res = CANCEL_DEFERED(cancel_status) ? PTHREAD_CANCEL_DEFERRED : PTHREAD_CANCEL_ASYNCHRONOUS;
 
     if(res != __type) {
         if(__type == PTHREAD_CANCEL_DEFERRED) {
-            internal->cancel_status += PTHREAD_CANCEL_DEFERRED;
-            internal->cancel_status -= PTHREAD_CANCEL_ASYNCHRONOUS;
+            cancel_status += PTHREAD_CANCEL_DEFERRED;
+            cancel_status -= PTHREAD_CANCEL_ASYNCHRONOUS;
             signal(SIGCANCEL, SIG_IGN);
         } else {
-            internal->cancel_status -= PTHREAD_CANCEL_DEFERRED;
-            internal->cancel_status += PTHREAD_CANCEL_ASYNCHRONOUS;
+            cancel_status -= PTHREAD_CANCEL_DEFERRED;
+            cancel_status += PTHREAD_CANCEL_ASYNCHRONOUS;
             signal(SIGCANCEL, __thread_handle_cancellation);
         }
+        __set_thread_cancel_status(internal, cancel_status);
     }
 
     if(__oldtype != NULL)
@@ -129,9 +136,11 @@ int res;
 
 _WCRTLINK void pthread_testcancel(void)
 {
-pthread_t *internal;
+pthread_t internal;
+int cancel_status;
 
-    internal = __get_current_thread();    
-    if(CANCEL_ENABLED(internal) && CANCEL_REQUESTED(internal))
+    internal = __get_current_thread();
+    cancel_status = __get_thread_cancel_status(internal);
+    if(CANCEL_ENABLED(cancel_status) && CANCEL_REQUESTED(cancel_status))
         __thread_handle_cancellation(0);
 }
