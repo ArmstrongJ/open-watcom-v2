@@ -56,18 +56,23 @@ int res;
 
 _WCRTLINK int pthread_barrier_wait(pthread_barrier_t *__barrier)
 {
+int ret;
+
     pthread_mutex_lock(__barrier->access);
+    
+    ret = 0;
     
     __barrier->count++;
     
     if(__barrier->count >= __barrier->limit) {
         pthread_cond_broadcast(__barrier->cond);
         __barrier->count = 0;
+        ret = PTHREAD_BARRIER_SERIAL_THREAD;
     } else {
         pthread_cond_wait(__barrier->cond, __barrier->access);
     }
     
     pthread_mutex_unlock(__barrier->access);
     
-    return( 0 );
+    return( ret );
 }

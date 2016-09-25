@@ -45,6 +45,8 @@
 #define PTHREAD_EXPLICIT_SCHED      0
 #define PTHREAD_INHERIT_SCHED       1
 
+#define PTHREAD_BARRIER_SERIAL_THREAD   (-1)
+
 #define PTHREAD_CANCELED            ((void *)1)
 
 /* Creation/destruction */
@@ -161,11 +163,19 @@ _WCRTLINK extern int pthread_mutexattr_setpshared( pthread_mutexattr_t *__attr, 
 _WCRTLINK extern int pthread_mutexattr_gettype( const pthread_mutexattr_t *__attr, int *__type );
 _WCRTLINK extern int pthread_mutexattr_settype( pthread_mutexattr_t *__attr, int __type );
 
+/* Barrier attributes */
+_WCRTLINK extern int pthread_barrierattr_init( pthread_barrierattr_t *__attr );
+_WCRTLINK extern int pthread_barrierattr_destroy( pthread_barrierattr_t *__attr );
+_WCRTLINK extern int pthread_barrierattr_getpshared( const pthread_barrierattr_t *__attr, int *__pshared );
+_WCRTLINK extern int pthread_barrierattr_setpshared( pthread_barrierattr_t *__attr, int __pshared );
+
 /* Condition attributes */
 _WCRTLINK extern int pthread_condattr_init( pthread_condattr_t *__attr );
 _WCRTLINK extern int pthread_condattr_destroy( pthread_condattr_t *__attr );
 _WCRTLINK extern int pthread_condattr_getpshared( const pthread_condattr_t *__attr, int *__pshared );
 _WCRTLINK extern int pthread_condattr_setpshared( pthread_condattr_t *__attr, int __pshared );
+_WCRTLINK extern int pthread_condattr_getclock( pthread_condattr_t *__attr, clockid_t *__clk );
+_WCRTLINK extern int pthread_condattr_setclock( pthread_condattr_t *__attr, clockid_t __clk );
 
 /* Read-write lock attributes */
 _WCRTLINK extern int pthread_rwlockattr_init( pthread_rwlockattr_t *__attr );

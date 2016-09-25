@@ -34,6 +34,7 @@
 !inject _prscfg.obj                                                                     l32 lpc lmp
 !inject ptattr.obj                                                                      l32 lpc lmp
 !inject ptbar.obj                                                                       l32 lpc lmp
+!inject ptbattr.obj                                                                     l32 lpc lmp
 !inject ptcancel.obj                                                                    l32 lpc lmp
 !inject ptcattr.obj                                                                     l32 lpc lmp
 !inject ptclean.obj                                                                     l32 lpc lmp
