@@ -212,3 +212,29 @@ _WCRTLINK int pthread_attr_getstacksize(const pthread_attr_t *__attr, size_t *__
     
     return( 0 );
 }
+
+_WCRTLINK int pthread_attr_setstack(pthread_attr_t *__attr, void *__stackaddr, size_t __stacksize)
+{
+int ret;
+
+    ret = pthread_attr_setstackaddr(__attr, __stackaddr);
+    if(ret != 0)
+        return( ret );
+        
+    ret = pthread_attr_setstacksize(__attr, __stacksize);
+
+    return( ret );
+}
+
+_WCRTLINK int pthread_attr_getstack(const pthread_attr_t *__attr, void **__stackaddr, size_t *__stacksize)
+{
+int ret;
+
+    ret = pthread_attr_getstackaddr(__attr, __stackaddr);
+    if(ret != 0)
+        return( ret );
+        
+    ret = pthread_attr_getstacksize(__attr, __stacksize);
+
+    return( ret );
+}

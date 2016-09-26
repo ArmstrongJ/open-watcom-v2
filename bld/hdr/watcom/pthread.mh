@@ -150,6 +150,8 @@ _WCRTLINK extern int pthread_attr_setstackaddr( pthread_attr_t *__attr, void *__
 _WCRTLINK extern int pthread_attr_getstackaddr( const pthread_attr_t *__attr, void **__stackaddr );
 _WCRTLINK extern int pthread_attr_setstacksize( pthread_attr_t *attr, size_t __stacksize );
 _WCRTLINK extern int pthread_attr_getstacksize( const pthread_attr_t *attr, size_t *__stacksize );
+_WCRTLINK extern int pthread_attr_setstack( pthread_attr_t *__attr, void *__stackaddr, size_t __stacksize );
+_WCRTLINK extern int pthread_attr_getstack( const pthread_attr_t *__attr, void **__stackaddr, size_t *__stacksize );
 
 /* Mutex attributes */
 _WCRTLINK extern int pthread_mutexattr_init( pthread_mutexattr_t *__attr );
