@@ -25,7 +25,7 @@
 *
 *  ========================================================================
 *
-* Description:  POSIX thread condition handling
+* Description:  POSIX thread condition variables
 *
 * Author: J. Armstrong
 *
