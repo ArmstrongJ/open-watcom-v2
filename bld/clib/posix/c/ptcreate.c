@@ -91,7 +91,7 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
     
     if(thread == NULL) {
         _RWD_errno = EINVAL;
-        return -1;
+        return( -1 );
     }
     
     stack_size = STACK_SIZE;
@@ -108,7 +108,7 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
     passed = (struct __thread_pass *)malloc(sizeof(struct __thread_pass));
     if(passed == NULL) {
         _RWD_errno = ENOMEM;
-        return -1;
+        return( -1 );
     }
     
     passed->start_routine = start_routine;
@@ -125,7 +125,7 @@ _WCRTLINK int pthread_create( pthread_t *thread, const pthread_attr_t *attr,
     }
     
     if(sem_init(&passed->registered, 0, 1) != 0) {
-        return -1;
+        return( -1 );
     }
     
     sem_wait(&passed->registered);

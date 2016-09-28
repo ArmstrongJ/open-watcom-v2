@@ -100,7 +100,7 @@ int res;
     if(res == 0)
         pthread_mutex_lock(__mutex);
 
-    return res;
+    return( res );
 }
 
 _WCRTLINK int pthread_cond_wait(pthread_cond_t *__cond, 
@@ -132,12 +132,12 @@ int res;
     if(res == 0)
         pthread_mutex_lock(__mutex);
 
-    return res;
+    return( res );
 }
 
 _WCRTLINK int pthread_cond_signal(pthread_cond_t *__cond)
 {
-    return sem_post( &__cond->wait_block );
+    return( sem_post( &__cond->wait_block ) );
 }
 
 _WCRTLINK int pthread_cond_broadcast(pthread_cond_t *__cond)
@@ -152,5 +152,5 @@ int waiters;
         sem_post( &__cond->wait_block );
     } while(waiters > 0);
     
-    return 0;
+    return( 0 );
 }

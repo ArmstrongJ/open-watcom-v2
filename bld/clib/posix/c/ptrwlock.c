@@ -128,7 +128,7 @@ int res;
     if(res == 0) {
         __rwlock->read_waiters++;
         pthread_mutex_unlock(&__rwlock->block_mutex);
-        return 0;
+        return( 0 );
     } 
     
     return( res );
@@ -148,7 +148,7 @@ int res;
             return( EBUSY);
         }
         
-        return 0;
+        return( 0 );
     } 
     
     return( res );

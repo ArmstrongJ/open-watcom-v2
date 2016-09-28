@@ -42,5 +42,5 @@ pthread_t ret;
     if(ret == (pthread_t)-1)
         ret = (pthread_t)gettid();
 
-    return ret;
+    return( ret );
 }

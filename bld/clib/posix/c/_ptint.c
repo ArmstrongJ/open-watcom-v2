@@ -100,7 +100,7 @@ struct __ptcatalog_struct *walker;
         walker = walker->next;
     }
     
-    return ret;
+    return( ret );
 }
 
 pthread_key_t __register_pkey( void (*destructor)(void*) )
@@ -111,7 +111,7 @@ struct __ptkeylist_struct *walker;
     newkey = (struct __ptkeylist_struct *)malloc(sizeof(struct __ptkeylist_struct));
     if( newkey == NULL ) {
         _RWD_errno = ENOMEM;
-        return (pthread_key_t)(-1);
+        return( (pthread_key_t)(-1) );
     }
     
     newkey->id = (pthread_key_t)keyid_count++;
@@ -135,7 +135,7 @@ struct __ptkeylist_struct *walker;
         pthread_mutex_unlock(__ptkeylist_mutex);
     }
     
-    return newkey->id;
+    return( newkey->id );
 }
 
 void __destroy_pkey( pthread_key_t id )
@@ -342,7 +342,7 @@ struct __ptcleaners *previous;
         free(previous);
     }
     
-    return 0;
+    return( 0 );
 }
 
 int __pop_pthread_cleaner( int __execute )
@@ -534,7 +534,7 @@ struct __ptkeys *keywalker, *keynext;
         }
         
     }
-    return __ptcatalog;
+    return( __ptcatalog );
 }
 
 /* NOTE: Catalog must be locked first! */
@@ -550,7 +550,7 @@ struct __ptcatalog_struct *walker;
         walker = walker->next;
     }
     
-    return walker;
+    return( walker );
 }
 
 
