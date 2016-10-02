@@ -2,7 +2,7 @@
 *
 *                            Open Watcom Project
 *
-*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+* Copyright (c) 2016 The Open Watcom Contributors. All Rights Reserved.
 *
 *  ========================================================================
 *
@@ -24,17 +24,27 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  POSIX thread execute-once implementation
+*
+* Author: J. Armstrong
 *
 ****************************************************************************/
 
+#include "variety.h"
+#include <sys/types.h>
+#include <pthread.h>
+#include <errno.h>
 
-#define _INITRANDNEXT(p)
-#if defined( __MT__ ) && ( defined( __OS2__ ) || defined( __NT__ ) || defined( __NETWARE__ ) || defined( __LINUX__ ) )
-    #define _RANDNEXT           (__THREADDATAPTR->__randnext)
-#else
-    static unsigned long int    next = 1;
-
-    #define _RANDNEXT           next
-#endif
+_WCRTLINK int pthread_once(pthread_once_t *__once_control, void (*__init_routine)(void))
+{
+    if(pthread_mutex_lock(&__once_control->access) == 0) {
+        if(__once_control->executed == 0) {
+            __init_routine();
+            __once_control->executed = 1;
+        }
+        pthread_mutex_unlock(&__once_control->access);
+    } else
+        return( EBUSY );
+    
+    return( 0 );
+}

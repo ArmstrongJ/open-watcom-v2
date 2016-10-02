@@ -2,7 +2,7 @@
 *
 *                            Open Watcom Project
 *
-*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+* Copyright (c) 2016 The Open Watcom Contributors. All Rights Reserved.
 *
 *  ========================================================================
 *
@@ -24,17 +24,19 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  POSIX thread equality test
+*
+* Author: J. Armstrong
 *
 ****************************************************************************/
 
+#include "variety.h"
+#include <sys/types.h>
 
-#define _INITRANDNEXT(p)
-#if defined( __MT__ ) && ( defined( __OS2__ ) || defined( __NT__ ) || defined( __NETWARE__ ) || defined( __LINUX__ ) )
-    #define _RANDNEXT           (__THREADDATAPTR->__randnext)
-#else
-    static unsigned long int    next = 1;
-
-    #define _RANDNEXT           next
-#endif
+_WCRTLINK int pthread_equal( pthread_t __p1, pthread_t __p2 )
+{
+    if(__p1 == __p2)
+        return( 1 );
+        
+    return( 0 );
+}

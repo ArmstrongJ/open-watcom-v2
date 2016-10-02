@@ -2,7 +2,7 @@
 *
 *                            Open Watcom Project
 *
-*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+* Copyright (c) 2016 The Open Watcom Contributors. All Rights Reserved.
 *
 *  ========================================================================
 *
@@ -24,17 +24,47 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  POSIX thread public shutdown implementation
+*
+* Author: J. Armstrong
 *
 ****************************************************************************/
 
+#include "variety.h"
+#include <pthread.h>
+#include <process.h>
+#include <stdio.h>
 
-#define _INITRANDNEXT(p)
-#if defined( __MT__ ) && ( defined( __OS2__ ) || defined( __NT__ ) || defined( __NETWARE__ ) || defined( __LINUX__ ) )
-    #define _RANDNEXT           (__THREADDATAPTR->__randnext)
-#else
-    static unsigned long int    next = 1;
+#include "_ptint.h"
 
-    #define _RANDNEXT           next
-#endif
+_WCRTLINK void pthread_exit(void *value_ptr)
+{
+int waiters_local;
+pthread_t myself;
+
+    /* Call the thread cleanup routines */
+    __call_all_pthread_cleaners( );
+
+    myself = __get_current_thread( );
+    if(myself == NULL) {
+        fprintf(stderr, "ERROR: thread was null during de-register\n");
+        _endthread();
+    }
+    
+    /* Unlock to release any joins */
+    pthread_mutex_unlock(__get_thread_running_mutex(myself));
+    
+    /* Wait until all "join" threads have copied our pointer */
+    waiters_local = 128;
+    while(waiters_local > 0) {
+        pthread_mutex_lock(__get_thread_waiting_mutex(myself));
+        waiters_local = __get_thread_waiters_count(myself);
+        pthread_mutex_unlock(__get_thread_waiting_mutex(myself));
+    }
+    
+    __unregister_thread(myself);
+    
+    /* This routine also needs to notify waiting threads */
+    _endthread();
+}    
+

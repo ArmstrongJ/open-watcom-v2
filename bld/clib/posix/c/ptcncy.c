@@ -2,7 +2,7 @@
 *
 *                            Open Watcom Project
 *
-*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+* Copyright (c) 2016 The Open Watcom Contributors. All Rights Reserved.
 *
 *  ========================================================================
 *
@@ -24,17 +24,23 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  POSIX thread concurrency functions (unsupported)
+*
+* Author: J. Armstrong
 *
 ****************************************************************************/
 
+#include "variety.h"
+#include <pthread.h>
+#include <errno.h>
+#include "_ptint.h"
 
-#define _INITRANDNEXT(p)
-#if defined( __MT__ ) && ( defined( __OS2__ ) || defined( __NT__ ) || defined( __NETWARE__ ) || defined( __LINUX__ ) )
-    #define _RANDNEXT           (__THREADDATAPTR->__randnext)
-#else
-    static unsigned long int    next = 1;
+_WCRTLINK int pthread_getconcurrency(void)
+{
+    return( 0 );
+}
 
-    #define _RANDNEXT           next
-#endif
+_WCRTLINK int pthread_setconcurrency(int new_level)
+{
+    return( ENOSYS );
+}

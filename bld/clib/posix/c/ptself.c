@@ -2,7 +2,7 @@
 *
 *                            Open Watcom Project
 *
-*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+* Copyright (c) 2016 The Open Watcom Contributors. All Rights Reserved.
 *
 *  ========================================================================
 *
@@ -24,17 +24,24 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  POSIX thread "self" retrieval
+*
+* Author: J. Armstrong
 *
 ****************************************************************************/
 
+#include "variety.h"
+#include <pthread.h>
+#include <process.h>
+#include "_ptint.h"
 
-#define _INITRANDNEXT(p)
-#if defined( __MT__ ) && ( defined( __OS2__ ) || defined( __NT__ ) || defined( __NETWARE__ ) || defined( __LINUX__ ) )
-    #define _RANDNEXT           (__THREADDATAPTR->__randnext)
-#else
-    static unsigned long int    next = 1;
+_WCRTLINK pthread_t pthread_self( )
+{
+pthread_t ret;
 
-    #define _RANDNEXT           next
-#endif
+    ret = __get_current_thread( );
+    if(ret == (pthread_t)-1)
+        ret = (pthread_t)gettid();
+
+    return( ret );
+}

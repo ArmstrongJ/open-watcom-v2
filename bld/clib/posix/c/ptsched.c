@@ -2,7 +2,7 @@
 *
 *                            Open Watcom Project
 *
-*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+* Copyright (c) 2016 The Open Watcom Contributors. All Rights Reserved.
 *
 *  ========================================================================
 *
@@ -24,17 +24,42 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  POSIX thread scheduler set/get functions
+*
+* Author: J. Armstrong
 *
 ****************************************************************************/
 
+#include "variety.h"
+#include <pthread.h>
+#include <sys/types.h>
+#include <sched.h>
+#include "_ptint.h"
 
-#define _INITRANDNEXT(p)
-#if defined( __MT__ ) && ( defined( __OS2__ ) || defined( __NT__ ) || defined( __NETWARE__ ) || defined( __LINUX__ ) )
-    #define _RANDNEXT           (__THREADDATAPTR->__randnext)
-#else
-    static unsigned long int    next = 1;
+_WCRTLINK int pthread_getschedparam(pthread_t __thr, int *__policy, struct sched_param *__param)
+{
+int ret;
+pid_t tid;
 
-    #define _RANDNEXT           next
-#endif
+    ret = 0;
+
+    tid = __get_thread_id(__thr);
+
+    if(__policy != NULL)
+        *__policy = sched_getscheduler(tid);
+    
+    if(__param != NULL)
+        ret = sched_getparam(tid, __param);
+
+    return( ret );
+}
+
+
+_WCRTLINK int pthread_setschedparam(pthread_t __thr, int __policy, const struct sched_param *__param)
+{
+pid_t tid;
+
+    tid = __get_thread_id(__thr);
+
+    return( sched_setscheduler(tid, __policy, __param) );
+}
