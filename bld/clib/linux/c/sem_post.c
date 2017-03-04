@@ -2,7 +2,7 @@
 *
 *                            Open Watcom Project
 *
-*    Portions Copyright (c) 2016 Open Watcom Contributors. 
+*    Portions Copyright (c) 2016, 2017 Open Watcom Contributors. 
 *    All Rights Reserved.
 *
 *  ========================================================================
@@ -34,6 +34,8 @@
 #include <semaphore.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <sched.h>
+#include <limits.h>
 #include "futex.h"
 #include "atomic.h"
 #include "rterrno.h"
@@ -42,11 +44,20 @@
 
 _WCRTLINK int sem_post( sem_t *sem ) 
 {
+int res;
+int passes;
+
     if( sem == NULL ) {
         _RWD_errno = EINVAL;
         return( -1 );
     }
-    __atomic_add( &sem->value, 1 );
-    __futex( &sem->value, FUTEX_WAKE_PRIVATE, 1, NULL );
+    
+    while(sem->value < 0) __atomic_increment( &sem->value );
+    
+    __atomic_increment( &sem->value );
+
+    __futex( &sem->futex, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, 0 );
+    sem->futex = 0;
+
     return( 0 );
 }

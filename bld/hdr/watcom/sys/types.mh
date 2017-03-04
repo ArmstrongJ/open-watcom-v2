@@ -147,12 +147,12 @@ typedef long long       id_t;   /* pid_t, uid_t or gid_t */
 /* For the definition of semaphores */
 :include semaphor.sp
 
-typedef struct {
-    sem_t        access;
-    sem_t        mutex;
-    int          status;
-    pid_t        owner;
-    int          type;
+typedef volatile struct {
+    volatile sem_t *access;
+    volatile sem_t *mutex;
+    volatile int    *status;
+    volatile pid_t  *owner;
+    int             *type;
 } pthread_mutex_t;
 
 typedef struct {
@@ -164,9 +164,10 @@ typedef int pthread_key_t;
 typedef pid_t pthread_t;
 
 typedef struct {
-    sem_t            wait_block;
+    volatile sem_t   *wait_block;
+    volatile sem_t   *clear_block;
     pthread_mutex_t  waiting_mutex;
-    int              waiters;
+    volatile int     waiters;
 } pthread_cond_t;
 
 /* Dummy type - nothing supported */

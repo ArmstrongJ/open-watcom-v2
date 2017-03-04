@@ -17,6 +17,7 @@
 :include timespec.sp
 
 typedef struct {
+    int futex;
     int value;
 } sem_t;
 

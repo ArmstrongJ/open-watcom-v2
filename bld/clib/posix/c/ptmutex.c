@@ -44,28 +44,38 @@
 #include "rterrno.h"
 #include "thread.h"
 
+
 #include "_ptint.h"
 
+extern int __atomic_compare_and_swap( volatile int *__dest, int __expected, int __source );
 
 _WCRTLINK int pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr)
 {
-    if(__mutex->status == MUTEX_STATUS_READY || __mutex->status == MUTEX_STATUS_LOCKED)
+    if(__mutex == NULL)
         return( EINVAL );
 
-    if(sem_init(&__mutex->access, 0, 1) != 0) {
+    __mutex->access = (sem_t *)malloc(sizeof(sem_t));
+    __mutex->mutex = (sem_t *)malloc(sizeof(sem_t));
+    if(__mutex->access == NULL || __mutex->mutex == NULL)
+        return( _RWD_errno );
+
+    if(sem_init(__mutex->access, 0, 1) != 0) {
         return( _RWD_errno );
     }
     
-    if(sem_init(&__mutex->mutex, 0, 1) != 0) {
+    if(sem_init(__mutex->mutex, 0, 1) != 0) {
         return( _RWD_errno );
     }
     
-    __mutex->status = MUTEX_STATUS_READY;
-    __mutex->owner = (pid_t)-1;
-    __mutex->type = PTHREAD_MUTEX_DEFAULT;
+    __mutex->status = (int *)malloc(sizeof(int));
+    *__mutex->status = MUTEX_STATUS_READY;
+    __mutex->owner = (pid_t *)malloc(sizeof(pid_t));
+    *__mutex->owner = (pid_t)-1;
+    __mutex->type = (int *)malloc(sizeof(int));
+    *__mutex->type = PTHREAD_MUTEX_DEFAULT;
     
     if(__attr != NULL)
-        __mutex->type = __attr->type;
+        *__mutex->type = __attr->type;
     
     return( 0 );   
 }
@@ -82,15 +92,18 @@ int res;
     if(res != 0)
         return( res );
 
-    if(sem_destroy(&__mutex->access) != 0)
+    if(sem_destroy(__mutex->access) != 0)
         return( _RWD_errno );
     
     /* Need to release the mutex semaphore now */
-    sem_post(&__mutex->mutex);
-    if(sem_destroy(&__mutex->mutex) != 0)
+    sem_post(__mutex->mutex);
+    if(sem_destroy(__mutex->mutex) != 0)
         return( _RWD_errno );
         
-    __mutex->status = MUTEX_STATUS_DESTROYED;
+    free(__mutex->access);
+    free(__mutex->mutex);
+        
+    *__mutex->status = MUTEX_STATUS_DESTROYED;
     return( 0 );
 }
 
@@ -103,19 +116,19 @@ int ret;
 
     ret = LOCK_PROCEED;
 
-    sem_wait(&__mutex->access);
-    if(__mutex->status == MUTEX_STATUS_READY)
+    sem_wait(__mutex->access);
+    if(*__mutex->status == MUTEX_STATUS_READY)
         ret = LOCK_PROCEED;
-    else if(__mutex->status == MUTEX_STATUS_LOCKED && __mutex->owner == gettid()) {
+    else if(*__mutex->status == MUTEX_STATUS_LOCKED && __mutex->owner == gettid()) {
     
         /* For a "normal" mutex, proceed with deadlock... */
-        if(__mutex->type == PTHREAD_MUTEX_NORMAL)
+        if(*__mutex->type == PTHREAD_MUTEX_NORMAL)
             ret = LOCK_PROCEED;
         
-        else if(__mutex->type == PTHREAD_MUTEX_ERRORCHECK)
+        else if(*__mutex->type == PTHREAD_MUTEX_ERRORCHECK)
             ret = LOCK_ERROR_OWNED;
     }    
-    sem_post(&__mutex->access);
+    sem_post(__mutex->access);
     
     return( ret );
 }
@@ -127,16 +140,16 @@ int ret;
     if(__mutex == NULL)
         return( EINVAL );
 
-    sem_wait(&__mutex->access);
+    sem_wait(__mutex->access);
     if(__mutex->status == MUTEX_STATUS_READY) {
-        sem_wait(&__mutex->mutex);
-        __mutex->status = MUTEX_STATUS_LOCKED;
-        __mutex->owner = gettid();
+        sem_wait(__mutex->mutex);
+        *__mutex->status = MUTEX_STATUS_LOCKED;
+        *__mutex->owner = gettid();
         ret = 0;
     } else 
         ret = EBUSY;
     
-    sem_post(&__mutex->access);
+    sem_post(__mutex->access);
     return( ret );
 }
 
@@ -150,49 +163,88 @@ int res;
     
     ret = -1;
     
-    res = __pthread_check_lock_type(__mutex);
-    if(res == LOCK_ERROR_OWNED)
-        return( EDEADLK );
+    /* res = __pthread_check_lock_type(__mutex);
+     * if(res == LOCK_ERROR_OWNED)
+     *     return( EDEADLK );
+     */
     
-    if(sem_wait(&__mutex->mutex) == 0) {
-        sem_wait(&__mutex->access);
+    if(sem_wait(__mutex->mutex) == 0) {
+        //sem_wait(__mutex->access);
         
-        __mutex->status = MUTEX_STATUS_LOCKED;
-        __mutex->owner = gettid();
-        ret = 0;
+        res = __atomic_compare_and_swap( __mutex->status, MUTEX_STATUS_READY, MUTEX_STATUS_LOCKED);
+        if(res == 1) {
+            res = __atomic_compare_and_swap( __mutex->owner, -1, gettid());
+            if(res == 0) {
+                __atomic_compare_and_swap( __mutex->status, MUTEX_STATUS_LOCKED, MUTEX_STATUS_READY);
+                ret = EPERM;
+                printf("Lock failed\n");
+                
+            } else
+                ret = 0;
+        } else
+            ret = EPERM;
         
-        sem_post(&__mutex->access);
+        //sem_post(__mutex->access);
+    } 
+    
+    if(ret != 0) {
+        sem_getvalue(__mutex->mutex, &res);
+        printf("Fail: %d - tid=%d, status=%d, owner=%d, mutex sem=%d\n", ret, gettid(), *__mutex->status, *__mutex->owner, res);
     }
-    
+    sched_yield();
     return( ret );
 }
 
 _WCRTLINK int pthread_mutex_unlock(pthread_mutex_t *__mutex)
 {
 int ret;
-    
+int res;
+
     if(__mutex == NULL)
         return( EINVAL );
     
     ret = -1;
-    
-    if(sem_wait(&__mutex->access) == 0) {
-        if(__mutex->status == MUTEX_STATUS_READY)
-            ret = 0;
-        else if(__mutex->owner == gettid()) {
-            __mutex->status = MUTEX_STATUS_READY;
-            __mutex->owner = (pid_t)-1;
-            ret = 0;
-            sem_post(&__mutex->mutex);
-        } else if(__mutex->status == MUTEX_STATUS_LOCKED)
-            ret = EPERM;
-        else if(__mutex->status == MUTEX_STATUS_DESTROYED)
-            ret = EINVAL;
-        else
-            ret = EBUSY;
+    //while(sem_wait(__mutex->access) != 0);
         
-        sem_post(&__mutex->access);
+    if(*__mutex->owner == -1) {
+        printf("%d -> %d\n", *__mutex->owner, gettid());
+        //exit(66);
+        __atomic_compare_and_swap( __mutex->status, MUTEX_STATUS_LOCKED, MUTEX_STATUS_READY);
+        return EPERM;
     }
+    
+    if(*__mutex->status == MUTEX_STATUS_READY)
+        ret = 0;
+    else if(*__mutex->owner == gettid()) {
+        //printf("match unlock\n");
+        if(!__atomic_compare_and_swap( __mutex->owner, gettid(), -1))
+            printf("unlock failure\n");
+        if(!__atomic_compare_and_swap( __mutex->status, MUTEX_STATUS_LOCKED, MUTEX_STATUS_READY))
+            printf("unlock failure part 2\n");
+        //__mutex->status = MUTEX_STATUS_READY;
+        //__mutex->owner = (pid_t)-1;
+        ret = 0;
+        
+        sem_post(__mutex->mutex);
+        sched_yield();
+
+    } else if(*__mutex->status == MUTEX_STATUS_LOCKED) {
+        ret = EPERM;
+        printf("EPERM\n");
+    } else if(*__mutex->status == MUTEX_STATUS_DESTROYED) {
+        ret = EINVAL;
+        printf("EINVAL\n");
+    } else {
+        ret = EBUSY;
+        printf("EBUSY\n");
+    }
+
+    if(ret != 0) {
+        sem_getvalue(__mutex->mutex, &res);
+        printf("Unlock Fail: %d - tid=%d, status=%d, owner=%d, mutex sem=%d\n", ret, gettid(), *__mutex->status, *__mutex->owner, res);
+    }
+
+    //sem_post(__mutex->access);
     
     return( ret );
 }
@@ -205,17 +257,17 @@ int __pthread_mutex_mylock(pthread_mutex_t *__mutex)
         return( EINVAL );
 
     ret = -1;
-    if(sem_wait(&__mutex->access) == 0) {
-        if(__mutex->status == MUTEX_STATUS_READY)
+    if(sem_wait(__mutex->access) == 0) {
+        if(*__mutex->status == MUTEX_STATUS_READY)
             ret = -1;
-        else if(__mutex->owner == gettid()) {
+        else if(*__mutex->owner == gettid()) {
             ret = 0;
-        } else if(__mutex->status == MUTEX_STATUS_DESTROYED)
+        } else if(*__mutex->status == MUTEX_STATUS_DESTROYED)
             ret = EINVAL;
         else
             ret = EBUSY;
         
-        sem_post(&__mutex->access);
+        sem_post(__mutex->access);
     }
     
     return( ret );

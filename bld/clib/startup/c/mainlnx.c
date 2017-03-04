@@ -31,6 +31,7 @@
 
 #include "variety.h"
 #include <stddef.h>
+#include <string.h>
 #include "rtdata.h"
 #include "rtstack.h"
 #include "stacklow.h"
@@ -44,8 +45,9 @@
 #include "cinit.h"
 #include "mthread.h"
 
-
 #ifdef __SW_BM
+sem_t *__tls_sem;
+
 _WCRTLINK int *__threadid( void )
 {
     return( (int *)&(__THREADDATAPTR->thread_id) );
@@ -74,6 +76,10 @@ void __LinuxInit( struct thread_data *ptr )
     unsigned    *tmp;
 
 #ifdef __SW_BM
+    __tls_sem = (sem_t *)malloc(sizeof(sem_t));
+    if(__tls_sem != NULL)
+        sem_init( __tls_sem, 0, 1 );
+
     __InitThreadData( ptr );
     __FirstThreadData = ptr;
 #endif

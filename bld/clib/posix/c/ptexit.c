@@ -34,6 +34,7 @@
 #include <pthread.h>
 #include <process.h>
 #include <stdio.h>
+#include <sched.h>
 
 #include "_ptint.h"
 
@@ -48,7 +49,6 @@ pthread_t myself;
 
     myself = __get_current_thread( );
     if(myself == NULL) {
-        fprintf(stderr, "ERROR: thread was null during de-register\n");
         _endthread();
     }
     
@@ -58,9 +58,8 @@ pthread_t myself;
     /* Wait until all "join" threads have copied our pointer */
     waiters_local = 128;
     while(waiters_local > 0) {
-        pthread_mutex_lock(__get_thread_waiting_mutex(myself));
         waiters_local = __get_thread_waiters_count(myself);
-        pthread_mutex_unlock(__get_thread_waiting_mutex(myself));
+        sched_yield();
     }
     
     __unregister_thread(myself);
