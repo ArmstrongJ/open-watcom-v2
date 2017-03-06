@@ -62,7 +62,7 @@ pthread_t myself;
         sched_yield();
     }
     
-    __unregister_thread(myself);
+    //__unregister_thread(myself);
     
     /* This routine also needs to notify waiting threads */
     _endthread();

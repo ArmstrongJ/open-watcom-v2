@@ -38,32 +38,32 @@
 #include <time.h>
 #include <stdlib.h>
 #include <sched.h>
+#include "atomic.h"
 #include "rterrno.h"
 #include "thread.h"
 
-
-extern void __atomic_increment( int *i );
-extern void __atomic_decrement( int *i );
-
 _WCRTLINK int pthread_cond_init(pthread_cond_t *__cond, const pthread_condattr_t *__attr)
 {
+int res;
+
     if( __cond == NULL )
         return( EINVAL );
-    
-    if(pthread_mutex_init( &__cond->waiting_mutex, NULL ) != 0)
-	exit(4);
-    
+
     __cond->wait_block = (sem_t *)malloc(sizeof(sem_t));
     __cond->clear_block = (sem_t *)malloc(sizeof(sem_t));
     
-    if(sem_init( __cond->wait_block, 0, 0 ) != 0)
-        exit(5);
-    if(sem_init( __cond->clear_block, 0, 1 ) != 0)
-        exit(6);
-    
-    pthread_mutex_lock( &__cond->waiting_mutex );
+    if(__cond->wait_block == NULL || __cond->clear_block == NULL)
+        return( ENOMEM );
+        
+    res = sem_init( __cond->wait_block, 0, 0 );
+    if(res != 0)
+        return( res );
+        
+    res = sem_init( __cond->clear_block, 0, 1 );
+    if(res != 0)
+        return( res );
+
     __cond->waiters = 0;
-    pthread_mutex_unlock( &__cond->waiting_mutex );
 
     return( 0 );   
 }
@@ -73,17 +73,13 @@ _WCRTLINK int pthread_cond_destroy(pthread_cond_t *__cond)
     if( __cond == NULL )
         return( EINVAL );
     
-    pthread_mutex_lock( &__cond->waiting_mutex );
     __cond->waiters = 0;
-    pthread_mutex_unlock( &__cond->waiting_mutex );
     
     sem_destroy( __cond->wait_block );
     sem_destroy( __cond->clear_block );
     
     free( __cond->wait_block );
     free( __cond->clear_block );
-    
-    pthread_mutex_destroy( &__cond->waiting_mutex );
     
     return( 0 );   
 }
@@ -94,35 +90,24 @@ _WCRTLINK int pthread_cond_timedwait(pthread_cond_t *__cond,
 {
 int res;
 
-    //pthread_mutex_lock( &__cond->waiting_mutex );
-    
-    /* If we're the first waiter, increment the semaphore now */
-    if(__cond->waiters == 0)
-        sem_wait(__cond->wait_block);
-    //__cond->waiters++;
+    sem_wait( __cond->clear_block );
     __atomic_increment(&__cond->waiters);
-    
-    //pthread_mutex_unlock( &__cond->waiting_mutex );
+    sem_post( __cond->clear_block );
 
-    pthread_mutex_unlock(__mutex);
+    pthread_mutex_unlock( __mutex );
+
     res = sem_timedwait( __cond->wait_block, abstime );
 
-    //pthread_mutex_lock( &__cond->waiting_mutex );
-    __cond->waiters--;
+    __atomic_decrement(&__cond->waiters);
     
-    /* If we're the last waiter, release the semaphore */
-    if(__cond->waiters == 0)
-        sem_post(__cond->wait_block);
-        
-    //pthread_mutex_unlock( &__cond->waiting_mutex );
+    sem_wait( __cond->clear_block );
+    sched_yield();
+    sem_post( __cond->clear_block );
 
-    if(res == 0)
-        pthread_mutex_lock(__mutex);
-
+    pthread_mutex_lock( __mutex );    
+    
     return( res );
 }
-
-extern int __atomic_add( volatile int *dest, int delta );
 
 _WCRTLINK int pthread_cond_wait(pthread_cond_t *__cond, 
                                 pthread_mutex_t *__mutex)
@@ -133,7 +118,6 @@ int res;
     __atomic_increment(&__cond->waiters);
     sem_post( __cond->clear_block );
 
-    //printf("in %d\n", __cond->waiters);
     pthread_mutex_unlock( __mutex );
 
     res = sem_wait( __cond->wait_block );
@@ -144,26 +128,28 @@ int res;
     sched_yield();
     sem_post( __cond->clear_block );
     
-    pthread_mutex_lock( __mutex );
-    //printf("out %d\n", __cond->waiters);
-    
+    pthread_mutex_lock( __mutex );    
     return( res );
 }
 
 _WCRTLINK int pthread_cond_signal(pthread_cond_t *__cond)
 {
 int ret;
+int waiters;
 
-    //pthread_mutex_lock( &__cond->waiting_mutex );
     sem_wait( __cond->clear_block );
+    
     ret = 0;
-    if( __cond->waiters > 0 )
+    if( __cond->waiters > 0 ) {
+        waiters = __cond->waiters;
         ret = sem_post( __cond->wait_block );
-    sched_yield();
+        while( __cond->waiters == waiters && waiters != 0 ) {
+            sched_yield( );
+        }
+    }
+    
     sem_post( __cond->clear_block );
     
-    //pthread_mutex_unlock( &__cond->waiting_mutex );
-
     return ret;
 }
 
@@ -171,16 +157,17 @@ _WCRTLINK int pthread_cond_broadcast(pthread_cond_t *__cond)
 {
 int i;
 int waiters;
-    //printf("bcast!\n");
+    
     sem_wait( __cond->clear_block );
-    //printf("...start!\n");
+    
     while(__cond->waiters > 0) {
         waiters = __cond->waiters;
         sem_post( __cond->wait_block );
-        while(__cond->waiters == waiters && waiters != 0) {sched_yield();}
+        while( __cond->waiters == waiters && waiters != 0 ) {
+            sched_yield( );
+        }
     }
     
     sem_post( __cond->clear_block );
-    //printf("ok\n");
     return( 0 );
 }

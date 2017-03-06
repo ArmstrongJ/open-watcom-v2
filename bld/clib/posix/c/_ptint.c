@@ -40,6 +40,7 @@
 #include "rterrno.h"
 #include "thread.h"
 #include "rtinit.h"
+#include "atomic.h"
 
 #include "_ptint.h"
 
@@ -59,14 +60,14 @@ struct __ptcleaners {
 };
 
 /* Thread registry */
-static struct __ptcatalog_struct {
+static volatile struct __ptcatalog_struct {
     pid_t                       tid;
     pthread_t                   pt;
  
     pthread_mutex_t            *running_mutex;
     pthread_mutex_t            *waiting_mutex;
 
-    int                         waiters;
+    volatile int                waiters;
     void                       *return_value;
     int                         cancel_status;
 
@@ -504,6 +505,8 @@ struct __ptcatalog_struct *walker;
         return( (pthread_t)-1 );
     }
     
+    memset(newthread, 0, sizeof(struct __ptcatalog_struct));
+    
     newthread->tid = gettid();
     
     /* Initialize some aspects of our pthread object */
@@ -526,6 +529,9 @@ struct __ptcatalog_struct *walker;
     
     /* Initialize the list of cleaners */
     newthread->cleaners = NULL;
+    
+    /* This will be the last thread */
+    newthread->next = NULL;
     
     newthread->return_value = NULL;
     /* Thread internal data is now initialized */
@@ -696,10 +702,8 @@ int ret;
     if(__ptcatalog_lock() == 0) {
         walker = __get_thread_catalog_entry(thread);
         if(walker != NULL) {
-            pthread_mutex_lock(walker->waiting_mutex);
-            walker->waiters++;
+            __atomic_increment(&walker->waiters);
             ret = walker->waiters;
-            pthread_mutex_unlock(walker->waiting_mutex);
         }
         __ptcatalog_unlock();
     }
@@ -717,10 +721,8 @@ int ret;
     if(__ptcatalog_lock() == 0) {
         walker = __get_thread_catalog_entry(thread);
         if(walker != NULL) {
-            pthread_mutex_lock(walker->waiting_mutex);
-            walker->waiters--;
+            __atomic_decrement(&walker->waiters);
             ret = walker->waiters;
-            pthread_mutex_unlock(walker->waiting_mutex);
         }
         __ptcatalog_unlock();
     }

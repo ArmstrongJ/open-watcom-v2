@@ -83,9 +83,9 @@ _WCRTLINK int sem_timedwait( sem_t *sem, const struct timespec *abstime )
         _RWD_errno = EINVAL;
         return( -1 );
     }
-    if( __decrement_if_positive( &sem->value ) )
-        return( 0 );
-    do {
+    
+    while( !__decrement_if_positive( &sem->value ) ) {
+
         clock_gettime( CLOCK_MONOTONIC, &reltime );
         reltime.tv_sec = abstime->tv_sec - reltime.tv_sec;
         reltime.tv_nsec = abstime->tv_nsec - reltime.tv_nsec;
@@ -94,13 +94,20 @@ _WCRTLINK int sem_timedwait( sem_t *sem, const struct timespec *abstime )
             reltime.tv_nsec += 1E+9;
         }
 
-        ret = __futex( &sem->futex, FUTEX_WAIT_PRIVATE, 1, &reltime, 0 );
+        if(sem->value <= 0)
+            ret = __futex( &sem->futex, FUTEX_WAIT_PRIVATE, 1, &reltime, 0 );
+        else
+            ret = 0;
+            
         if(ret == -ETIMEDOUT) {
             _RWD_errno = ETIMEDOUT;
             return( -1 );
         }
          
-    } while( !__decrement_if_positive( &sem->value ) );
+    }
+    
+    if(sem->value == 0) sem->futex = 1;
+    
     return( 0 );
 }
 
@@ -116,13 +123,25 @@ _WCRTLINK int sem_trywait( sem_t *sem )
     timer.tv_sec = 0;
     timer.tv_nsec = 0;
 
+    ret = 0;
+
+    if( !__decrement_if_positive( &sem->value ) ) {
+        
+        if(sem->value <= 0)
+            ret = __futex( &sem->futex, FUTEX_WAIT_PRIVATE, 1, &timer, 0 );
+        else 
+            ret = 0;
+            
+    } else {
+    
+        if(sem->value == 0) sem->futex = 1;
+        return( 0 );
+        
+    }
+    
     if( __decrement_if_positive( &sem->value ) )
         return( 0 );
-    do {
-        ret = __futex( &sem->futex, FUTEX_WAIT_PRIVATE, 1, &timer, 0 );
-    } while( ret == 0 && !__decrement_if_positive( &sem->value ) );
-    if( ret == 0 )
-        return( 0 );
+    
     _RWD_errno = EAGAIN;
     return( -1 );
 }
