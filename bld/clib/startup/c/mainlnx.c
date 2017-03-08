@@ -32,6 +32,7 @@
 #include "variety.h"
 #include <stddef.h>
 #include <string.h>
+#include <sys/types.h>
 #include "rtdata.h"
 #include "rtstack.h"
 #include "stacklow.h"
@@ -92,7 +93,18 @@ void __LinuxInit( struct thread_data *ptr )
 
 _WCRTLINK _NORETURN void __exit( unsigned ret_code )
 {
+#ifdef __SW_BM
+    pid_t firsttid = __FirstThreadData->thread_id;
+#endif
+    
     __FiniRtns( 0, FINI_PRIORITY_EXIT - 1 );
-    _sys_exit( ret_code );
+    
+#ifdef __SW_BM
+    if( gettid( ) == firsttid )
+        _sys_exit_group( ret_code );
+    else
+#endif
+        _sys_exit( ret_code );
+        
     // never return
 }

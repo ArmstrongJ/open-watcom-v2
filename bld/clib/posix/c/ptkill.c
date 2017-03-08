@@ -38,13 +38,25 @@
 
 #include "_ptint.h"
 
+#ifdef __LINUX__
+extern int __tgkill( pid_t __tgid, pid_t __tid, int __signal );
+#endif
+
 _WCRTLINK int pthread_kill(pthread_t thread, int sig)
 {
 pid_t tpid;
+pid_t ppid;
 
     tpid = __get_thread_id( thread );
-    if(tpid != 0)
-        return( kill( tpid, sig ) );
+    ppid = getppid();
+    if(tpid != 0 && ppid != 0) {
+#ifdef __LINUX__
+        return( __tgkill(ppid, tpid, sig) );
+#else
+        _RWD_errno = ENOSYS;
+        return( -1 );
+#endif
+    }
     
     _RWD_errno = EINVAL;
     

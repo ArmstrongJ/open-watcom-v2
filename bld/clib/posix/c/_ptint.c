@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/types.h>
 #include "rterrno.h"
 #include "thread.h"
@@ -43,7 +44,6 @@
 #include "atomic.h"
 
 #include "_ptint.h"
-
 
 /* Per-thread key lists */
 struct __ptkeys {
@@ -537,8 +537,9 @@ struct __ptcatalog_struct *walker;
     /* Thread internal data is now initialized */
 
     /* Check if we've ever created a thread */
-    if(!__ptcatalog_lock_initialized())
+    if(!__ptcatalog_lock_initialized()) {
         __ptcatalog_init_lock();
+    }
 
     /* Attach to the linked list */
     if(__ptcatalog_lock() == 0) {

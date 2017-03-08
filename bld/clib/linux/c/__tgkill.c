@@ -2,7 +2,8 @@
 *
 *                            Open Watcom Project
 *
-* Copyright (c) 2016 The Open Watcom Contributors. All Rights Reserved.
+*    Portions Copyright (c) 2016 Open Watcom Contributors. 
+*    All Rights Reserved.
 *
 *  ========================================================================
 *
@@ -24,47 +25,21 @@
 *
 *  ========================================================================
 *
-* Description:  POSIX thread public shutdown implementation
-*
-* Author: J. Armstrong
+* Description:  Private implementation of the thread group kill system call
 *
 ****************************************************************************/
 
+
 #include "variety.h"
-#include <pthread.h>
-#include <process.h>
-#include <stdio.h>
-#include <sched.h>
+#include <sys/types.h>
+#include "linuxsys.h"
 
-#include "_ptint.h"
-
-
-_WCRTLINK void pthread_exit(void *value_ptr)
+_WCRTLINK int __tgkill( pid_t __tgid, pid_t __tid, int __signal )
 {
-int waiters_local;
-pthread_t myself;
+syscall_res res;
 
-    /* Call the thread cleanup routines */
-    __call_all_pthread_cleaners( );
+    res = sys_call3( SYS_tgkill, (u_long)__tgid, (u_long)__tid, 
+                     (u_long)__signal );
 
-    myself = __get_current_thread( );
-    if(myself == NULL) {
-        _endthread();
-    }
-    
-    /* Unlock to release any joins */
-    pthread_mutex_unlock(__get_thread_running_mutex(myself));
-    
-    /* Wait until all "join" threads have copied our pointer */
-//    waiters_local = 128;
-//    while(waiters_local > 0) {
-//        waiters_local = __get_thread_waiters_count(myself);
-//        sched_yield();
-//    }
-    
-    //__unregister_thread(myself);
-    
-    /* This routine also needs to notify waiting threads */
-    _endthread();
-}    
-
+    __syscall_return( int, res );
+}
