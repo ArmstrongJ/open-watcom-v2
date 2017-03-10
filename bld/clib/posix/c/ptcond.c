@@ -123,12 +123,12 @@ int res;
     res = sem_wait( __cond->wait_block );
 
     __atomic_decrement(&__cond->waiters);
-    
-    sem_wait( __cond->clear_block );
-    sched_yield();
-    sem_post( __cond->clear_block );
-    
-    pthread_mutex_lock( __mutex );    
+
+    //sem_wait( __cond->clear_block );
+    //sem_post( __cond->clear_block );
+
+    pthread_mutex_lock( __mutex ); 
+
     return( res );
 }
 

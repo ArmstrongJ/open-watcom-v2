@@ -94,17 +94,14 @@ void __LinuxInit( struct thread_data *ptr )
 _WCRTLINK _NORETURN void __exit( unsigned ret_code )
 {
 #ifdef __SW_BM
-    pid_t firsttid = __FirstThreadData->thread_id;
-#endif
-    
-    __FiniRtns( 0, FINI_PRIORITY_EXIT - 1 );
-    
-#ifdef __SW_BM
-    if( gettid( ) == firsttid )
+    if( __FirstThreadData != NULL && gettid( ) == __FirstThreadData->thread_id ) {
+        __FiniRtns( 0, FINI_PRIORITY_EXIT - 1 );
         _sys_exit_group( ret_code );
-    else
+    } else
+#else
+    __FiniRtns( 0, FINI_PRIORITY_EXIT - 1 );
 #endif
-        _sys_exit( ret_code );
+    _sys_exit( ret_code );
         
     // never return
 }

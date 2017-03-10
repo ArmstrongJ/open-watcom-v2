@@ -57,7 +57,8 @@ int passes;
     __atomic_increment( &sem->value );
 
     __futex( &sem->futex, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, 0 );
-    sem->futex = 0;
+    
+    __atomic_compare_and_swap(&sem->futex, 1, 0);
 
     return( 0 );
 }

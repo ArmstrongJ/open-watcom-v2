@@ -55,21 +55,25 @@ int value;
 _WCRTLINK int sem_wait( sem_t *sem ) 
 {
 int res;
+struct timespec timer;
 
     if( sem == NULL ) {
         _RWD_errno = EINVAL;
         return( -1 );
     }
 
+    timer.tv_sec = 0;
+    timer.tv_nsec = 1E+5;
+
     while( !__decrement_if_positive( &sem->value ) ) {
         
         if(sem->value <= 0)
-            res = __futex( &sem->futex, FUTEX_WAIT_PRIVATE, 1, NULL, 0 );
+            res = __futex( &sem->futex, FUTEX_WAIT_PRIVATE, 1, &timer, 0 );
         else 
             res = 0;
     }
     
-    if(sem->value == 0) sem->futex = 1;
+    if(sem->value == 0) __atomic_compare_and_swap(&sem->futex, 0, 1);
 
     return( 0 );
 }
@@ -106,7 +110,7 @@ _WCRTLINK int sem_timedwait( sem_t *sem, const struct timespec *abstime )
          
     }
     
-    if(sem->value == 0) sem->futex = 1;
+    if(sem->value == 0) __atomic_compare_and_swap(&sem->futex, 0, 1);
     
     return( 0 );
 }
@@ -134,7 +138,7 @@ _WCRTLINK int sem_trywait( sem_t *sem )
             
     } else {
     
-        if(sem->value == 0) sem->futex = 1;
+        if(sem->value == 0) __atomic_compare_and_swap(&sem->futex, 0, 1);
         return( 0 );
         
     }

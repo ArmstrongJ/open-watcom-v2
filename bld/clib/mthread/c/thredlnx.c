@@ -46,10 +46,10 @@
 
 #include <stdio.h>
 
-static struct __lnx_tls_entry {
+static volatile struct __lnx_tls_entry {
     pid_t    id;
     void    *tls;
-    struct   __lnx_tls_entry *next;
+    volatile struct __lnx_tls_entry *next;
 } *__tls;
 
 extern sem_t *__tls_sem;
@@ -61,7 +61,7 @@ struct __lnx_thread {
 
 void *__LinuxGetThreadData( ) 
 {
-struct __lnx_tls_entry *walker;
+volatile struct __lnx_tls_entry *walker;
 void *ret;
 
     ret = NULL;
@@ -84,8 +84,8 @@ void *ret;
 
 void __LinuxSetThreadData( void *__data )
 {
-struct __lnx_tls_entry *walker;
-struct __lnx_tls_entry *previous;
+volatile struct __lnx_tls_entry *walker;
+volatile struct __lnx_tls_entry *previous;
 
     sem_wait( __tls_sem );
         walker = __tls;
