@@ -147,7 +147,7 @@ typedef long long       id_t;   /* pid_t, uid_t or gid_t */
 /* For the definition of semaphores */
 :include semaphor.sp
 
-typedef volatile struct {
+typedef struct {
     sem_t mutex;
     volatile pid_t   owner;
     int              type;
