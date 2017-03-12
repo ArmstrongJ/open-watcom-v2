@@ -143,7 +143,6 @@ int waiters;
 
 _WCRTLINK int pthread_cond_broadcast(pthread_cond_t *__cond)
 {
-int i;
 int waiters;
     
     sem_wait( &__cond->clear_block );

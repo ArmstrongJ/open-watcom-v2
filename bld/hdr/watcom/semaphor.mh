@@ -17,8 +17,8 @@
 :include timespec.sp
 
 typedef struct {
-    int futex;
-    int value;
+    volatile int futex;
+    volatile int value;
 } sem_t;
 
 /* We only support this currently on Intel chips */

@@ -116,7 +116,7 @@ volatile struct __lnx_tls_entry *previous;
             else
                 __tls = walker->next;
             
-            lib_free(walker);
+            lib_free((void *)walker);
                 
         } else if( walker != NULL && __data != NULL ) {
         

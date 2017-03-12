@@ -44,9 +44,6 @@
 
 _WCRTLINK int sem_post( sem_t *sem ) 
 {
-int res;
-int passes;
-
     if( sem == NULL ) {
         _RWD_errno = EINVAL;
         return( -1 );

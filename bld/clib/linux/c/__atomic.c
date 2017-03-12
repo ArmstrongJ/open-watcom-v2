@@ -47,12 +47,12 @@ static unsigned cmpxchg( volatile int *i, int j, int k );
     parm [edx] [eax] [ecx] \
     value [eax];
 
-static void increment( int *i );
+static void increment( volatile int *i );
 #pragma aux increment = \
     "lock inc dword ptr [eax]" \
     parm [eax];
 
-static void decrement( int *i );
+static void decrement( volatile int *i );
 #pragma aux decrement = \
     "lock dec dword ptr [eax]" \
     parm [eax];
@@ -83,7 +83,7 @@ int __atomic_add( volatile int *dest, int delta )
     return( 0 );
 }
 
-void __atomic_increment( int *i )
+void __atomic_increment( volatile int *i )
 {
 #ifdef __386__
     increment(i);
@@ -92,7 +92,7 @@ void __atomic_increment( int *i )
 #endif
 }
 
-void __atomic_decrement( int *i )
+void __atomic_decrement( volatile int *i )
 {
 #ifdef __386__
     decrement(i);

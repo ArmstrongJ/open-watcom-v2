@@ -33,6 +33,8 @@
 #include "variety.h"
 #include <sys/types.h>
 #include <signal.h>
+#include <unistd.h>
+
 #include "thread.h"
 #include "rterrno.h"
 
@@ -48,7 +50,7 @@ pid_t tpid;
 pid_t ppid;
 
     tpid = __get_thread_id( thread );
-    ppid = getppid();
+    ppid = getpid();
     if(tpid != 0 && ppid != 0) {
 #ifdef __LINUX__
         return( __tgkill(ppid, tpid, sig) );

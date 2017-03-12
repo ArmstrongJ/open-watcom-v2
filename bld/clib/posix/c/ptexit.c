@@ -41,7 +41,6 @@
 
 _WCRTLINK void pthread_exit(void *value_ptr)
 {
-int waiters_local;
 pthread_t myself;
 
     /* Call the thread cleanup routines */
@@ -53,18 +52,12 @@ pthread_t myself;
     }
     
     /* Unlock to release any joins */
-    pthread_mutex_unlock(__get_thread_running_mutex(myself));
+    pthread_mutex_unlock( __get_thread_running_mutex( myself ) );
     
-    /* Wait until all "join" threads have copied our pointer */
-//    waiters_local = 128;
-//    while(waiters_local > 0) {
-//        waiters_local = __get_thread_waiters_count(myself);
-//        sched_yield();
-//    }
+    /* If detached, destroy all internal memory for this thread */
+    if( __get_thread_detached( myself ) == 1 )
+        __unregister_thread( myself );
     
-    //__unregister_thread(myself);
-    
-    /* This routine also needs to notify waiting threads */
     _endthread();
 }    
 

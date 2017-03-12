@@ -43,11 +43,9 @@
 #include <process.h>
 #include "rterrno.h"
 #include "thread.h"
-
+#include "atomic.h"
 
 #include "_ptint.h"
-
-extern int __atomic_compare_and_swap( volatile int *__dest, int __expected, int __source );
 
 _WCRTLINK int pthread_mutex_init(pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr)
 {
@@ -157,7 +155,6 @@ int res;
 _WCRTLINK int pthread_mutex_unlock(pthread_mutex_t *__mutex)
 {
 int ret;
-int res;
 
     if(__mutex == NULL || __mutex->owner == MUTEX_STATUS_DESTROYED)
         return( EINVAL );
@@ -174,7 +171,6 @@ int res;
         ret = 0;
         
         sem_post(&__mutex->mutex);
-        //sched_yield();
 
     } else 
         ret = EPERM;
